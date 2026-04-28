@@ -279,7 +279,7 @@ function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
           {[
             { label: "FY2026 Budget", href: "https://cannoncountytn.gov/budget/", icon: <DollarSign size={14}/> },
             { label: "Next Meetings", screen: "meetings", icon: <Calendar size={14}/> },
-            { label: "Dump Hours",    action: "dump",     icon: <Info size={14}/> },
+            { label: "Is the Dump Open?", action: "dump", icon: <Info size={14}/> },
             { label: "Find a Doc",    screen: "documents",icon: <FileText size={14}/> },
           ].map(b => (
             b.href
