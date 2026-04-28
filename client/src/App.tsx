@@ -878,11 +878,11 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
             </div>
             <ExternalLink size={14} className="text-muted-foreground flex-shrink-0"/>
           </a>
-          <a href="mailto:info@cannoncountytn.gov"
+          <a href="https://tncot.cc/fraud" target="_blank" rel="noopener noreferrer"
             className="flex items-center justify-between p-3 rounded-lg border bg-background hover:border-brick/60 transition-colors group">
             <div>
-              <p className="text-sm font-semibold">County Administrator</p>
-              <p className="text-xs text-muted-foreground">info@cannoncountytn.gov — for non-criminal concerns</p>
+              <p className="text-sm font-semibold">TN Comptroller — Fraud Hotline</p>
+              <p className="text-xs text-muted-foreground">1-800-232-5454 · tncot.cc/fraud — waste, fraud &amp; abuse</p>
             </div>
             <ExternalLink size={14} className="text-muted-foreground flex-shrink-0"/>
           </a>
