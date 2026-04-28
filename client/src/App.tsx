@@ -275,10 +275,10 @@ function HomeScreen({ onNav, onDump }: { onNav: (s: string) => void; onDump: () 
         </p>
         <div className="flex flex-wrap gap-2">
           {[
-            { label: "FY2026 Budget", href: "https://cannoncountytn.gov/budget/", icon: <DollarSign size={14}/> },
-            { label: "Next Meetings", screen: "meetings", icon: <Calendar size={14}/> },
-            { label: "Is the Dump Open?", action: "dump", icon: <Info size={14}/> },
-            { label: "Find a Doc",    screen: "documents",icon: <FileText size={14}/> },
+            { label: "Is the Dump Open?", action: "dump",                                  icon: <Info size={14}/> },
+            { label: "Next Meetings",     screen: "meetings",                              icon: <Calendar size={14}/> },
+            { label: "Find a Doc",        screen: "documents",                             icon: <FileText size={14}/> },
+            { label: "FY2026 Budget",     href: "https://cannoncountytn.gov/budget/",     icon: <DollarSign size={14}/> },
           ].map(b => (
             b.href
               ? <a key={b.label} href={b.href} target="_blank" rel="noreferrer"
@@ -315,7 +315,7 @@ function HomeScreen({ onNav, onDump }: { onNav: (s: string) => void; onDump: () 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { val: "$28.4M", label: "FY26 Budget", sub: "↑ 3.2% vs FY25", color: "var(--color-forest)" },
+          { val: "$45.4M", label: "FY25–26 Budget", sub: "Approved Oct 2025", color: "var(--color-forest)" },
           { val: next ? fmtDate(next.meeting_date) : (mldr ? "—" : "None"), label: "Next Meeting", sub: next?.title.split("—")[0].trim() ?? "", color: "var(--color-bronze)" },
           { val: String(alerts?.filter(a=>a.label==="action_needed").length ?? 0), label: "Action Items", sub: "Needs attention", color: "var(--color-brick)" },
           { val: String(subCount?.count ?? 0), label: "Subscribers", sub: "Civic alert list", color: "var(--color-forest)" },
