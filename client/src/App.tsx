@@ -219,8 +219,8 @@ function getDumpStatus(): { open: boolean; message: string; note?: string } {
 function DumpHoursPopup({ onClose }: { onClose: () => void }) {
   const status = getDumpStatus();
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-card rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 mb-6 sm:mb-0 border" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 border" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: status.open ? "var(--color-forest)" : "var(--color-brick)" }}>
@@ -237,9 +237,9 @@ function DumpHoursPopup({ onClose }: { onClose: () => void }) {
           <p className="font-semibold text-foreground text-sm mb-1">Main Convenience Center Hours</p>
           <p>Mon, Tue, Thu, Fri, Sat — 7:00 AM to 5:30 PM</p>
           <p>Wednesday, Sunday &amp; Holidays — <span className="font-semibold">CLOSED</span></p>
-          <a href="https://www.cannoncountytn.gov/road-department/" target="_blank" rel="noreferrer"
+          <a href="https://cannoncountytn.gov/cannon-county-convenience-center/" target="_blank" rel="noreferrer"
             className="flex items-center gap-1 mt-2 text-primary font-semibold hover:underline">
-            <ExternalLink size={11}/> Official Road Dept. page
+            <ExternalLink size={11}/> Dump Details
           </a>
         </div>
         <button onClick={onClose}
@@ -277,7 +277,7 @@ function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
         </p>
         <div className="flex flex-wrap gap-2">
           {[
-            { label: "FY2026 Budget", href: "https://www.cannoncountytn.gov/finance/", icon: <DollarSign size={14}/> },
+            { label: "FY2026 Budget", href: "https://cannoncountytn.gov/budget/", icon: <DollarSign size={14}/> },
             { label: "Next Meetings", screen: "meetings", icon: <Calendar size={14}/> },
             { label: "Dump Hours",    action: "dump",     icon: <Info size={14}/> },
             { label: "Find a Doc",    screen: "documents",icon: <FileText size={14}/> },
@@ -448,10 +448,13 @@ function MeetingsScreen() {
                     <MapPin size={12}/> Directions
                   </a>
                 )}
-                {(m.livestream_url || m.body === "county_commission") && (
-                  <a href={m.livestream_url || "https://www.youtube.com/@ccgovvideo"} target="_blank" rel="noreferrer"
+                {(m.livestream_url || m.body === "county_commission" || m.body === "school_board") && (
+                  <a href={
+                    m.livestream_url ||
+                    (m.body === "school_board" ? "https://www.youtube.com/@ccboeschoolvideo4892/featured" : "https://www.youtube.com/@ccgovvideo")
+                  } target="_blank" rel="noreferrer"
                     className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-border hover:border-primary hover:text-primary transition-colors">
-                    <ExternalLink size={12}/> {m.livestream_url ? "Watch Live" : "CC Gov Video"}
+                    <ExternalLink size={12}/> {m.livestream_url ? "Watch Live" : "Watch on YouTube"}
                   </a>
                 )}
               </div>
