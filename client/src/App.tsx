@@ -1740,10 +1740,69 @@ const NAV_ITEMS = [
 
 type Screen = (typeof NAV_ITEMS)[number]["id"];
 
+function AdminPasswordModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
+  const [input, setInput] = useState("");
+  const [error, setError] = useState(false);
+  const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "cannonpocket-admin";
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input === ADMIN_PASSWORD) {
+      onSuccess();
+    } else {
+      setError(true);
+      setInput("");
+      setTimeout(() => setError(false), 2000);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-card rounded-2xl shadow-2xl p-8 w-full max-w-sm mx-4 border">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "var(--color-forest)" }}>
+            <Shield size={20} color="white"/>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Admin Access</h2>
+            <p className="text-xs text-muted-foreground">Enter your admin password to continue</p>
+          </div>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="password"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Password"
+            autoFocus
+            className={`w-full px-4 py-3 rounded-xl border text-sm bg-background outline-none transition-colors ${
+              error ? "border-red-500 placeholder-red-400" : "border-border focus:border-primary"
+            }`}
+          />
+          {error && <p className="text-xs text-red-500">Incorrect password. Try again.</p>}
+          <div className="flex gap-3">
+            <button type="button" onClick={onCancel}
+              className="flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium hover:bg-muted transition-colors">
+              Cancel
+            </button>
+            <button type="submit"
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+              style={{ background: "var(--color-forest)" }}>
+              Unlock
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function AppInner() {
   const [screen, setScreen] = useState<Screen>("home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [countyScrollTo, setCountyScrollTo] = useState<"corruption" | undefined>(undefined);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [showAdminModal, setShowAdminModal] = useState(false);
   const { dark, toggle } = useTheme();
 
   const SCREEN_TITLES: Record<Screen, string> = {
@@ -1752,7 +1811,16 @@ function AppInner() {
     "my-alerts": "My Alerts", admin: "Admin",
   };
 
-  const nav = (s: string) => { setScreen(s as Screen); setSidebarOpen(false); setCountyScrollTo(undefined); };
+  const nav = (s: string) => {
+    if (s === "admin" && !adminUnlocked) {
+      setShowAdminModal(true);
+      setSidebarOpen(false);
+      return;
+    }
+    setScreen(s as Screen);
+    setSidebarOpen(false);
+    setCountyScrollTo(undefined);
+  };
 
   const navToCorruption = () => {
     setScreen("county");
@@ -1828,7 +1896,13 @@ function AppInner() {
             {screen === "county"    && <CountyScreen scrollTo={countyScrollTo}/>}
             {screen === "directory" && <DirectoryScreen/>}
             {screen === "my-alerts" && <MyAlertsScreen/>}
-            {screen === "admin"     && <AdminScreen/>}
+            {screen === "admin"     && adminUnlocked && <AdminScreen/>}
+            {showAdminModal && (
+              <AdminPasswordModal
+                onSuccess={() => { setAdminUnlocked(true); setShowAdminModal(false); setScreen("admin"); }}
+                onCancel={() => setShowAdminModal(false)}
+              />
+            )}
           </div>
         </main>
       </div>
