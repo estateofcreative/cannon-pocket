@@ -959,13 +959,17 @@ function GetListedModal({ onClose }: { onClose: () => void }) {
                   <p className="text-xs text-muted-foreground">In-county businesses get a discounted rate.</p>
                 </div>
                 <button
+                  role="switch"
+                  aria-checked={inCounty}
                   onClick={() => setInCounty(p => !p)}
-                  className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 overflow-hidden ${
-                    inCounty ? "bg-primary" : "bg-muted-foreground/30"
-                  }`}>
-                  <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    inCounty ? "translate-x-6" : "translate-x-1"
-                  }`}/>
+                  className="relative flex-shrink-0 focus:outline-none"
+                  style={{ width: 44, height: 26 }}>
+                  <span
+                    className="block w-full h-full rounded-full transition-colors duration-200"
+                    style={{ background: inCounty ? "var(--color-forest)" : "#cbd5e1" }}/>
+                  <span
+                    className="block absolute top-1 rounded-full bg-white shadow transition-all duration-200"
+                    style={{ width: 18, height: 18, left: inCounty ? 22 : 4 }}/>
                 </button>
               </div>
 
