@@ -387,7 +387,7 @@ export function registerRoutes(httpServer: Server, app: Express) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: "Cannon County Dashboard <onboarding@resend.dev>",
-        to: ["unframeofmind@gmail.com"],
+        to: [process.env.ADMIN_EMAIL || "estateofcreative@gmail.com"],
         subject: `New Business Listing Application: ${name} (${tier || "free"})`,
         html: `
           <h2>New Listing Application</h2>
