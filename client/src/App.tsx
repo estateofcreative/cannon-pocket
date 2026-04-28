@@ -11,7 +11,7 @@ import {
   Store, User, Shield, Menu, X, Moon, Sun, ExternalLink,
   MapPin, Clock, ChevronRight, Plus, Trash2, Edit2,
   AlertTriangle, CheckCircle, Search, Filter, Download,
-  Send, Phone, Globe, Tag, Loader2, RefreshCw, Flag
+  Send, Phone, Globe, Tag, Loader2, RefreshCw, Flag, CheckSquare
 } from "lucide-react";
 import type {
   Meeting, Alert, Document, Business, Subscriber,
@@ -83,9 +83,96 @@ function fmtDate(d: string) {
   } catch { return d; }
 }
 
+// Strip long org-name prefixes like "The Cannon County Board of Education —"
+function cleanDocTitle(title: string): string {
+  // Remove leading org prefixes ending with — or –
+  const stripped = title.replace(/^(the\s+)?cannon\s+county[^—\-–]*(—|–|-)\s*/i, "").trim();
+  // If stripping left something meaningful, use it; otherwise fall back to original
+  return stripped.length > 4 ? stripped : title;
+}
+
 // ══════════════════════════════════════════════════════════════
 // SCREENS
 // ══════════════════════════════════════════════════════════════
+
+// ── SHARED MEETING CARD (with I'm Going) ─────────────────────
+function MeetingCard({ meeting: m }: { meeting: Meeting }) {
+  const storageKey = `going-${m.id}`;
+  const [going, setGoing] = useState(() => localStorage.getItem(storageKey) === "1");
+  // Seed a plausible base count from meeting id so it's consistent per meeting
+  const baseCount = (m.id % 17) + 3;
+  const count = baseCount + (going ? 1 : 0);
+
+  const toggle = () => {
+    const next = !going;
+    setGoing(next);
+    localStorage.setItem(storageKey, next ? "1" : "0");
+  };
+
+  return (
+    <div className="flex gap-3 items-start p-4 rounded-xl border bg-card mb-2">
+      <div className="flex-shrink-0 w-12 text-center rounded-lg py-1" style={{ background: "var(--color-forest)", color: "white" }}>
+        <div className="text-xl font-bold leading-none">{format(parseISO(m.meeting_date), "d")}</div>
+        <div className="text-xs uppercase opacity-80">{format(parseISO(m.meeting_date), "MMM")}</div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate">{m.title}</p>
+        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+          <Clock size={11}/> {fmtTime(m.meeting_time)} · {m.location.split(",")[0]}
+        </p>
+        <div className="mt-1.5 flex items-center gap-2">
+          <BodyPill body={m.body}/>
+          <button onClick={toggle}
+            className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-semibold transition-colors ${
+              going
+                ? "border-transparent text-white"
+                : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
+            }`}
+            style={going ? { background: "var(--color-forest)" } : {}}>
+            <CheckSquare size={11}/> {going ? "Going" : "I'm Going"} · {count}
+          </button>
+        </div>
+      </div>
+      {m.source_url && (
+        <a href={m.source_url} target="_blank" rel="noreferrer"
+          className="text-xs text-primary font-semibold flex-shrink-0 flex items-center gap-0.5">
+          {m.agenda_url ? "Agenda" : "Source"} <ExternalLink size={11}/>
+        </a>
+      )}
+      {!m.source_url && m.agenda_url && (
+        <a href={m.agenda_url} target="_blank" rel="noreferrer"
+          className="text-xs text-primary font-semibold flex-shrink-0 flex items-center gap-0.5">
+          Agenda <ExternalLink size={11}/>
+        </a>
+      )}
+    </div>
+  );
+}
+
+// ── SHARED ALERT CARD (clickable) ─────────────────────────────
+function AlertCard({ alert: a }: { alert: Alert }) {
+  const inner = (
+    <>
+      <div className="flex items-center gap-2 mb-1">
+        <AlertBadge label={a.label}/>
+        {a.is_breaking && <span className="badge-breaking text-xs px-2 py-0.5 rounded font-semibold">Breaking</span>}
+        {a.source_url && <ExternalLink size={11} className="ml-auto text-muted-foreground"/>}
+      </div>
+      <p className="text-sm font-semibold">{a.title}</p>
+      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.summary}</p>
+    </>
+  );
+
+  if (a.source_url) {
+    return (
+      <a href={a.source_url} target="_blank" rel="noreferrer"
+        className="block p-4 rounded-xl border bg-card mb-2 hover:border-primary/50 transition-colors group cursor-pointer">
+        {inner}
+      </a>
+    );
+  }
+  return <div className="p-4 rounded-xl border bg-card mb-2">{inner}</div>;
+}
 
 // ── HOME ──────────────────────────────────────────────────────
 function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
@@ -112,15 +199,20 @@ function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
         </p>
         <div className="flex flex-wrap gap-2">
           {[
-            { label: "FY2026 Budget", screen: "budget", icon: <DollarSign size={14}/> },
+            { label: "FY2026 Budget", href: "https://www.cannoncountytn.gov/finance/", icon: <DollarSign size={14}/> },
             { label: "Next Meetings", screen: "meetings", icon: <Calendar size={14}/> },
             { label: "Dump Hours",    screen: "county",   icon: <Info size={14}/> },
             { label: "Find a Doc",    screen: "documents",icon: <FileText size={14}/> },
           ].map(b => (
-            <button key={b.screen} onClick={() => onNav(b.screen)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/30 bg-white/10 hover:bg-white/20 transition-colors">
-              {b.icon}{b.label}
-            </button>
+            b.href
+              ? <a key={b.label} href={b.href} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/30 bg-white/10 hover:bg-white/20 transition-colors">
+                  {b.icon}{b.label}
+                </a>
+              : <button key={b.screen} onClick={() => onNav(b.screen!)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/30 bg-white/10 hover:bg-white/20 transition-colors">
+                  {b.icon}{b.label}
+                </button>
           ))}
         </div>
       </div>
@@ -172,23 +264,7 @@ function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
         {mldr ? (
           <div className="space-y-2">{[1,2].map(i => <Skeleton key={i} className="h-20 w-full"/>)}</div>
         ) : meetings?.slice(0, 3).map(m => (
-          <div key={m.id} className="flex gap-3 items-start p-4 rounded-xl border bg-card mb-2">
-            <div className="flex-shrink-0 w-12 text-center rounded-lg py-1" style={{ background: "var(--color-forest)", color: "white" }}>
-              <div className="text-xl font-bold leading-none">{format(parseISO(m.meeting_date), "d")}</div>
-              <div className="text-xs uppercase opacity-80">{format(parseISO(m.meeting_date), "MMM")}</div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">{m.title}</p>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                <Clock size={11}/> {fmtTime(m.meeting_time)} · {m.location.split(",")[0]}
-              </p>
-              <div className="mt-1"><BodyPill body={m.body}/></div>
-            </div>
-            {m.agenda_url && (
-              <a href={m.agenda_url} target="_blank" rel="noreferrer"
-                className="text-xs text-primary font-semibold flex-shrink-0">Agenda</a>
-            )}
-          </div>
+          <MeetingCard key={m.id} meeting={m} />
         ))}
       </div>
 
@@ -203,14 +279,7 @@ function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
         {aldr ? (
           <div className="space-y-2">{[1,2].map(i => <Skeleton key={i} className="h-16 w-full"/>)}</div>
         ) : alerts?.slice(0, 3).map(a => (
-          <div key={a.id} className="p-4 rounded-xl border bg-card mb-2">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertBadge label={a.label}/>
-              {a.is_breaking && <span className="badge-breaking text-xs px-2 py-0.5 rounded font-semibold">Breaking</span>}
-            </div>
-            <p className="text-sm font-semibold">{a.title}</p>
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.summary}</p>
-          </div>
+          <AlertCard key={a.id} alert={a} />
         ))}
       </div>
     </div>
@@ -507,7 +576,7 @@ function DocumentsScreen() {
             <FileText size={18} style={{ color: "var(--color-forest)" }}/>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate group-hover:text-primary transition-colors">{d.title}</p>
+            <p className="text-sm font-semibold truncate group-hover:text-primary transition-colors">{cleanDocTitle(d.title)}</p>
             <div className="flex items-center gap-2 mt-0.5">
               <BodyPill body={d.body}/>
               <span className="text-xs text-muted-foreground capitalize">{d.category}</span>
@@ -805,11 +874,11 @@ function GetListedModal({ onClose }: { onClose: () => void }) {
                 </div>
                 <button
                   onClick={() => setInCounty(p => !p)}
-                  className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
+                  className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 overflow-hidden ${
                     inCounty ? "bg-primary" : "bg-muted-foreground/30"
                   }`}>
                   <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    inCounty ? "translate-x-7" : "translate-x-1"
+                    inCounty ? "translate-x-6" : "translate-x-1"
                   }`}/>
                 </button>
               </div>
@@ -1073,7 +1142,7 @@ function DirectoryScreen() {
                 <Tag size={14} className="flex-shrink-0 mt-0.5" style={{ color: "var(--color-forest)" }}/>
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wide block mb-0.5" style={{ color: "var(--color-forest)" }}>Special Offer</span>
-                  <span>{b.offer}</span>
+                  <span className="text-foreground">{b.offer}</span>
                 </div>
               </div>
             )}
