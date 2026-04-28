@@ -204,16 +204,15 @@ function getDumpStatus(): { open: boolean; message: string; note?: string } {
   if (day === 0 || day === 3) { // Sunday or Wednesday
     return { open: false, message: `The Dump is CLOSED today`, note: day === 3 ? "Closed every Wednesday" : "Closed every Sunday" };
   }
-  // Open days: Mon, Tue, Thu, Fri, Sat — 7am to 5:30pm
-  const isOpen = hour >= 7 && hour < 17.5;
+  // Open days: Mon, Tue, Thu, Fri, Sat — 8am to 5pm
+  const isOpen = hour >= 8 && hour < 17;
   if (isOpen) {
-    const closeStr = "5:30 PM";
-    return { open: true, message: `The Dump is OPEN today until ${closeStr}` };
+    return { open: true, message: `The Dump is OPEN today until 5:00 PM` };
   }
-  if (hour < 7) {
-    return { open: false, message: `The Dump opens at 7:00 AM`, note: "Opens Mon, Tue, Thu, Fri & Sat" };
+  if (hour < 8) {
+    return { open: false, message: `The Dump opens at 8:00 AM`, note: "Opens Mon, Tue, Thu, Fri & Sat" };
   }
-  return { open: false, message: `The Dump is CLOSED for today`, note: "Closed after 5:30 PM" };
+  return { open: false, message: `The Dump is CLOSED for today`, note: "Closed after 5:00 PM" };
 }
 
 function DumpHoursPopup({ onClose }: { onClose: () => void }) {
@@ -235,7 +234,7 @@ function DumpHoursPopup({ onClose }: { onClose: () => void }) {
         </div>
         <div className="text-xs text-muted-foreground space-y-1 border-t pt-3">
           <p className="font-semibold text-foreground text-sm mb-1">Main Convenience Center Hours</p>
-          <p>Mon, Tue, Thu, Fri, Sat — 7:00 AM to 5:30 PM</p>
+          <p>Mon, Tue, Thu, Fri, Sat — 8:00 AM to 5:00 PM</p>
           <p>Wednesday, Sunday &amp; Holidays — <span className="font-semibold">CLOSED</span></p>
           <a href="https://cannoncountytn.gov/cannon-county-convenience-center/" target="_blank" rel="noreferrer"
             className="flex items-center gap-1 mt-2 text-primary font-semibold hover:underline">
@@ -693,7 +692,7 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
   }, [scrollTo]);
 
   const conveniences = [
-    { name: "Main Convenience Center", address: "1165 McMinnville Hwy, Woodbury, TN", hours: "Mon, Tue, Thu, Fri, Sat 7:00 AM – 5:30 PM · Wed, Sun & Holidays CLOSED", phone: "(615) 563-5693" },
+    { name: "Main Convenience Center", address: "1165 McMinnville Hwy, Woodbury, TN", hours: "Mon–Tue & Thu–Sat 8:00 AM – 5:00 PM · Wed, Sun & Federal Holidays CLOSED", phone: "(615) 563-5693" },
     { name: "Liberty Convenience Center", address: "Liberty Community, Cannon County, TN", hours: "Sat–Sun 7:00 AM – 5:00 PM · Wed & Holidays CLOSED" },
   ];
 
