@@ -697,9 +697,8 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
     { name: "County Clerk", phone: "(615) 563-4278", address: "200 W. Main St. (Courthouse), Woodbury, TN 37190" },
     { name: "Property Assessor", phone: "(615) 563-5437", address: "200 W. Main St. (Courthouse), Woodbury, TN 37190" },
     { name: "Register of Deeds", phone: "(615) 563-2041", address: "200 W. Main St., Suite #9 (Courthouse), Woodbury, TN 37190" },
-    { name: "Tax Assessor", phone: "(615) 563-2320", address: "" },
     { name: "Trustee", phone: "(615) 563-2282", address: "200 W. Main St. (Courthouse), Woodbury, TN 37190" },
-    { name: "Sheriff's Office", phone: "", address: "110 Alexander Dr., Woodbury, TN 37190" },
+    { name: "Sheriff's Office", phone: "(615) 563-1000", address: "110 Alexander Dr., Woodbury, TN 37190", note: "Non-emergency" },
     { name: "Highway Department", phone: "(615) 563-4213", address: "900 Old McMinnville Rd., Woodbury, TN 37190" },
   ];
 
@@ -768,9 +767,12 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
                 {(c as any).email && <a href={`mailto:${(c as any).email}`} className="text-xs text-primary mt-0.5 block truncate">{(c as any).email}</a>}
               </div>
               {c.phone ? (
-                <a href={`tel:${c.phone}`} className="text-xs font-semibold text-primary flex-shrink-0 flex items-center gap-1 mt-0.5">
-                  <Phone size={12}/>{c.phone}
-                </a>
+                <div className="flex flex-col items-end flex-shrink-0">
+                  <a href={`tel:${c.phone}`} className="text-xs font-semibold text-primary flex items-center gap-1 mt-0.5">
+                    <Phone size={12}/>{c.phone}
+                  </a>
+                  {(c as any).note && <span className="text-xs text-muted-foreground mt-0.5">{(c as any).note}</span>}
+                </div>
               ) : null}
             </div>
           ))}
