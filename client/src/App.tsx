@@ -251,11 +251,10 @@ function DumpHoursPopup({ onClose }: { onClose: () => void }) {
 }
 
 // ── HOME ──────────────────────────────────────────────────────
-function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
+function HomeScreen({ onNav, onDump }: { onNav: (s: string) => void; onDump: () => void }) {
   const { data: meetings, isLoading: mldr } = useQuery<Meeting[]>({ queryKey: ["/api/meetings"] });
   const { data: alerts, isLoading: aldr }   = useQuery<Alert[]>({ queryKey: ["/api/alerts"] });
   const { data: subCount } = useQuery<{ count: number }>({ queryKey: ["/api/subscribers/count"] });
-  const [showDump, setShowDump] = useState(false);
 
   const breaking = alerts?.filter(a => a.is_breaking) ?? [];
   const next = meetings?.[0];
@@ -287,7 +286,7 @@ function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
                   {b.icon}{b.label}
                 </a>
               : b.action === "dump"
-              ? <button key={b.label} onClick={() => setShowDump(true)}
+              ? <button key={b.label} onClick={onDump}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/30 bg-white/10 hover:bg-white/20 transition-colors">
                   {b.icon}{b.label}
                 </button>
@@ -298,8 +297,6 @@ function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
           ))}
         </div>
       </div>
-
-      {showDump && <DumpHoursPopup onClose={() => setShowDump(false)}/>}
 
       {/* Breaking alert */}
       {breaking.length > 0 && (
@@ -1964,6 +1961,7 @@ function AppInner() {
   const [countyScrollTo, setCountyScrollTo] = useState<"corruption" | undefined>(undefined);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showDumpPopup, setShowDumpPopup] = useState(false);
   const { dark, toggle } = useTheme();
 
   const SCREEN_TITLES: Record<Screen, string> = {
@@ -2050,7 +2048,7 @@ function AppInner() {
         {/* Main content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 lg:pb-6">
           <div className="max-w-2xl mx-auto">
-            {screen === "home"      && <HomeScreen onNav={nav}/>}
+            {screen === "home"      && <HomeScreen onNav={nav} onDump={() => setShowDumpPopup(true)}/>}
             {screen === "meetings"  && <MeetingsScreen/>}
             {screen === "alerts"    && <AlertsScreen/>}
             {screen === "documents" && <DocumentsScreen/>}
@@ -2096,6 +2094,7 @@ function AppInner() {
       </nav>
 
       <Toaster/>
+      {showDumpPopup && <DumpHoursPopup onClose={() => setShowDumpPopup(false)}/>}
     </div>
   );
 }
