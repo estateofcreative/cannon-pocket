@@ -83,12 +83,18 @@ function fmtDate(d: string) {
   } catch { return d; }
 }
 
-// Strip long org-name prefixes like "The Cannon County Board of Education —"
+// Shorten org names and strip prefixes in document titles
 function cleanDocTitle(title: string): string {
-  // Remove leading org prefixes ending with — or –
-  const stripped = title.replace(/^(the\s+)?cannon\s+county[^—\-–]*(—|–|-)\s*/i, "").trim();
-  // If stripping left something meaningful, use it; otherwise fall back to original
-  return stripped.length > 4 ? stripped : title;
+  // Replace long org name with abbreviation first
+  let t = title
+    .replace(/the\s+cannon\s+county\s+board\s+of\s+education/gi, "CCBOE")
+    .replace(/cannon\s+county\s+board\s+of\s+education/gi, "CCBOE")
+    .replace(/cannon\s+county\s+commission/gi, "CC Commission")
+    .replace(/cannon\s+county\s+planning\s+commission/gi, "CC Planning")
+    .replace(/cannon\s+county\s+budget\s+committee/gi, "CC Budget Committee");
+  // Strip leading "CCBOE —" style prefix if it's just the org name followed by a dash
+  const stripped = t.replace(/^(CCBOE|CC\s+\w[^—–-]*)(\s*(—|–|-)\s*)/i, "").trim();
+  return stripped.length > 4 ? stripped : t;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -99,15 +105,20 @@ function cleanDocTitle(title: string): string {
 function MeetingCard({ meeting: m }: { meeting: Meeting }) {
   const storageKey = `going-${m.id}`;
   const [going, setGoing] = useState(() => localStorage.getItem(storageKey) === "1");
-  // Seed a plausible base count from meeting id so it's consistent per meeting
-  const baseCount = (m.id % 17) + 3;
+  // Stable base count derived from numeric part of id
+  const idNum = typeof m.id === "number" ? m.id : parseInt(String(m.id).replace(/\D/g, ""), 10) || 7;
+  const baseCount = (idNum % 17) + 3;
   const count = baseCount + (going ? 1 : 0);
 
-  const toggle = () => {
+  const toggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const next = !going;
     setGoing(next);
     localStorage.setItem(storageKey, next ? "1" : "0");
   };
+
+  const linkUrl = m.agenda_url || m.source_url || null;
+  const linkLabel = m.agenda_url ? "Agenda" : "Source";
 
   return (
     <div className="flex gap-3 items-start p-4 rounded-xl border bg-card mb-2">
@@ -120,10 +131,16 @@ function MeetingCard({ meeting: m }: { meeting: Meeting }) {
         <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
           <Clock size={11}/> {fmtTime(m.meeting_time)} · {m.location.split(",")[0]}
         </p>
-        <div className="mt-1.5 flex items-center gap-2">
-          <BodyPill body={m.body}/>
+        <div className="mt-1.5"><BodyPill body={m.body}/></div>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          {linkUrl && (
+            <a href={linkUrl} target="_blank" rel="noreferrer"
+              className="text-xs text-primary font-semibold flex items-center gap-0.5 hover:underline">
+              <ExternalLink size={11}/> {linkLabel}
+            </a>
+          )}
           <button onClick={toggle}
-            className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-semibold transition-colors ${
+            className={`ml-auto flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-semibold transition-colors ${
               going
                 ? "border-transparent text-white"
                 : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
@@ -133,18 +150,6 @@ function MeetingCard({ meeting: m }: { meeting: Meeting }) {
           </button>
         </div>
       </div>
-      {m.source_url && (
-        <a href={m.source_url} target="_blank" rel="noreferrer"
-          className="text-xs text-primary font-semibold flex-shrink-0 flex items-center gap-0.5">
-          {m.agenda_url ? "Agenda" : "Source"} <ExternalLink size={11}/>
-        </a>
-      )}
-      {!m.source_url && m.agenda_url && (
-        <a href={m.agenda_url} target="_blank" rel="noreferrer"
-          className="text-xs text-primary font-semibold flex-shrink-0 flex items-center gap-0.5">
-          Agenda <ExternalLink size={11}/>
-        </a>
-      )}
     </div>
   );
 }
@@ -174,11 +179,84 @@ function AlertCard({ alert: a }: { alert: Alert }) {
   return <div className="p-4 rounded-xl border bg-card mb-2">{inner}</div>;
 }
 
+// ── DUMP HOURS POPUP ──────────────────────────────────────────
+function getDumpStatus(): { open: boolean; message: string; note?: string } {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+  const hour = now.getHours() + now.getMinutes() / 60;
+
+  // Federal holidays (MM-DD) — approximate for CDT
+  const mmdd = `${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+  const holidays = ["01-01","07-04","11-11","12-25","12-24"];
+  const isHoliday = holidays.includes(mmdd);
+  // Memorial Day = last Monday of May, Labor Day = first Monday of Sept
+  const isMemorialDay = now.getMonth() === 4 && day === 1 && now.getDate() > 24;
+  const isLaborDay    = now.getMonth() === 8 && day === 1 && now.getDate() <= 7;
+
+  if (isHoliday || isMemorialDay || isLaborDay) {
+    const names: Record<string, string> = {
+      "01-01": "New Year's Day", "07-04": "Independence Day",
+      "11-11": "Veterans Day",   "12-25": "Christmas", "12-24": "Christmas Eve",
+    };
+    const holidayName = isMemorialDay ? "Memorial Day" : isLaborDay ? "Labor Day" : (names[mmdd] ?? "a holiday");
+    return { open: false, message: `The Dump is CLOSED today`, note: `Closed for ${holidayName}` };
+  }
+  if (day === 0 || day === 3) { // Sunday or Wednesday
+    return { open: false, message: `The Dump is CLOSED today`, note: day === 3 ? "Closed every Wednesday" : "Closed every Sunday" };
+  }
+  // Open days: Mon, Tue, Thu, Fri, Sat — 7am to 5:30pm
+  const isOpen = hour >= 7 && hour < 17.5;
+  if (isOpen) {
+    const closeStr = "5:30 PM";
+    return { open: true, message: `The Dump is OPEN today until ${closeStr}` };
+  }
+  if (hour < 7) {
+    return { open: false, message: `The Dump opens at 7:00 AM`, note: "Opens Mon, Tue, Thu, Fri & Sat" };
+  }
+  return { open: false, message: `The Dump is CLOSED for today`, note: "Closed after 5:30 PM" };
+}
+
+function DumpHoursPopup({ onClose }: { onClose: () => void }) {
+  const status = getDumpStatus();
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 mb-6 sm:mb-0 border" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: status.open ? "var(--color-forest)" : "var(--color-brick)" }}>
+            <Info size={20} color="white"/>
+          </div>
+          <div>
+            <p className="font-bold text-base" style={{ fontFamily: "var(--font-display)" }}>
+              {status.message}
+            </p>
+            {status.note && <p className="text-xs text-muted-foreground mt-0.5">{status.note}</p>}
+          </div>
+        </div>
+        <div className="text-xs text-muted-foreground space-y-1 border-t pt-3">
+          <p className="font-semibold text-foreground text-sm mb-1">Main Convenience Center Hours</p>
+          <p>Mon, Tue, Thu, Fri, Sat — 7:00 AM to 5:30 PM</p>
+          <p>Wednesday, Sunday &amp; Holidays — <span className="font-semibold">CLOSED</span></p>
+          <a href="https://www.cannoncountytn.gov/road-department/" target="_blank" rel="noreferrer"
+            className="flex items-center gap-1 mt-2 text-primary font-semibold hover:underline">
+            <ExternalLink size={11}/> Official Road Dept. page
+          </a>
+        </div>
+        <button onClick={onClose}
+          className="mt-4 w-full py-2 rounded-xl border text-sm font-medium hover:bg-muted transition-colors">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── HOME ──────────────────────────────────────────────────────
 function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
   const { data: meetings, isLoading: mldr } = useQuery<Meeting[]>({ queryKey: ["/api/meetings"] });
   const { data: alerts, isLoading: aldr }   = useQuery<Alert[]>({ queryKey: ["/api/alerts"] });
   const { data: subCount } = useQuery<{ count: number }>({ queryKey: ["/api/subscribers/count"] });
+  const [showDump, setShowDump] = useState(false);
 
   const breaking = alerts?.filter(a => a.is_breaking) ?? [];
   const next = meetings?.[0];
@@ -201,7 +279,7 @@ function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
           {[
             { label: "FY2026 Budget", href: "https://www.cannoncountytn.gov/finance/", icon: <DollarSign size={14}/> },
             { label: "Next Meetings", screen: "meetings", icon: <Calendar size={14}/> },
-            { label: "Dump Hours",    screen: "county",   icon: <Info size={14}/> },
+            { label: "Dump Hours",    action: "dump",     icon: <Info size={14}/> },
             { label: "Find a Doc",    screen: "documents",icon: <FileText size={14}/> },
           ].map(b => (
             b.href
@@ -209,6 +287,11 @@ function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/30 bg-white/10 hover:bg-white/20 transition-colors">
                   {b.icon}{b.label}
                 </a>
+              : b.action === "dump"
+              ? <button key={b.label} onClick={() => setShowDump(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/30 bg-white/10 hover:bg-white/20 transition-colors">
+                  {b.icon}{b.label}
+                </button>
               : <button key={b.screen} onClick={() => onNav(b.screen!)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-white/30 bg-white/10 hover:bg-white/20 transition-colors">
                   {b.icon}{b.label}
@@ -216,6 +299,8 @@ function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
           ))}
         </div>
       </div>
+
+      {showDump && <DumpHoursPopup onClose={() => setShowDump(false)}/>}
 
       {/* Breaking alert */}
       {breaking.length > 0 && (
@@ -363,10 +448,10 @@ function MeetingsScreen() {
                     <MapPin size={12}/> Directions
                   </a>
                 )}
-                {m.livestream_url && (
-                  <a href={m.livestream_url} target="_blank" rel="noreferrer"
+                {(m.livestream_url || m.body === "county_commission") && (
+                  <a href={m.livestream_url || "https://www.youtube.com/@ccgovvideo"} target="_blank" rel="noreferrer"
                     className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-border hover:border-primary hover:text-primary transition-colors">
-                    <ExternalLink size={12}/> Watch Live
+                    <ExternalLink size={12}/> {m.livestream_url ? "Watch Live" : "CC Gov Video"}
                   </a>
                 )}
               </div>
@@ -605,8 +690,8 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
   }, [scrollTo]);
 
   const conveniences = [
-    { name: "Main Convenience Center", address: "1165 McMinnville Hwy, Woodbury, TN", hours: "Mon–Sat 7:00 AM – 5:00 PM · Sunday CLOSED", phone: "(615) 563-5693" },
-    { name: "Liberty Convenience Center", address: "Liberty Community, Cannon County, TN", hours: "Sat–Sun 7:00 AM – 5:00 PM" },
+    { name: "Main Convenience Center", address: "1165 McMinnville Hwy, Woodbury, TN", hours: "Mon, Tue, Thu, Fri, Sat 7:00 AM – 5:30 PM · Wed, Sun & Holidays CLOSED", phone: "(615) 563-5693" },
+    { name: "Liberty Convenience Center", address: "Liberty Community, Cannon County, TN", hours: "Sat–Sun 7:00 AM – 5:00 PM · Wed & Holidays CLOSED" },
   ];
 
   const contacts = [
@@ -758,6 +843,7 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
           {[
             { label: "Cannon County Official Site", url: "https://www.cannoncountytn.gov" },
             { label: "Cannon County Schools (CCSTN)", url: "https://www.ccstn.net" },
+            { label: "Inmate Lookup — Cannon County Jail", url: "https://www.vinelink.com/vinelink/siteInfoAction.do?siteId=43001" },
             { label: "TN Property Tax Lookup", url: "https://assessment.cot.tn.gov" },
             { label: "Vehicle Registration Renewal", url: "https://tnvehicleregistration.com" },
           ].map(l => (
