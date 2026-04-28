@@ -265,7 +265,7 @@ function HomeScreen({ onNav }: { onNav: (s: string) => void }) {
     <div className="screen-enter space-y-6 pb-8">
       {/* Hero banner */}
       <div className="relative overflow-hidden rounded-2xl p-6 text-white" style={{ background: "var(--color-forest)" }}>
-        <div className="absolute inset-0 opacity-10" style={{
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
           backgroundImage: "radial-gradient(circle at 80% 50%, white 0%, transparent 60%)"
         }} />
         <p className="text-xs uppercase tracking-widest opacity-70 mb-1">Cannon County, Tennessee</p>
