@@ -61,10 +61,13 @@ export function registerRoutes(httpServer: Server, app: Express) {
 
   // ── ALERTS ────────────────────────────────────────────────────
   app.get("/api/alerts", async (_req, res) => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
     const { data, error } = await supabase
       .from("alerts")
       .select("*")
       .eq("is_published", true)
+      .gte("created_at", cutoff.toISOString())
       .order("created_at", { ascending: false });
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
