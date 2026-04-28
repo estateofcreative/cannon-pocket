@@ -693,17 +693,42 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
   ];
 
   const contacts = [
-    { name: "County Mayor's Office", phone: "(615) 563-4231", address: "200 W. Main St., Woodbury, TN 37190" },
-    { name: "County Clerk", phone: "(615) 563-4278", address: "200 W. Main St., Woodbury, TN 37190" },
-    { name: "Property Assessor", phone: "(615) 563-2009", address: "200 W. Main St., Woodbury, TN 37190" },
-    { name: "Trustee (Property Tax)", phone: "(615) 563-4986", address: "200 W. Main St., Woodbury, TN 37190" },
-    { name: "Road Department", phone: "(615) 563-5693", address: "1165 McMinnville Hwy, Woodbury, TN" },
-    { name: "Schools (CCSTN)", phone: "(615) 563-5752", address: "301 W. Main St., Woodbury, TN 37190" },
+    { name: "County Executive", person: "Greg Mitchell", phone: "(615) 563-3068", address: "110 S. Tatum St., Suite 201, Woodbury, TN 37190", email: "Greg.Mitchell@CannonCountyTN.gov" },
+    { name: "County Clerk", phone: "(615) 563-4278", address: "200 W. Main St. (Courthouse), Woodbury, TN 37190" },
+    { name: "Property Assessor", phone: "(615) 563-5437", address: "200 W. Main St. (Courthouse), Woodbury, TN 37190" },
+    { name: "Register of Deeds", phone: "(615) 563-2041", address: "200 W. Main St., Suite #9 (Courthouse), Woodbury, TN 37190" },
+    { name: "Tax Assessor", phone: "(615) 563-2320", address: "" },
+    { name: "Trustee", phone: "(615) 563-2282", address: "200 W. Main St. (Courthouse), Woodbury, TN 37190" },
+    { name: "Sheriff's Office", phone: "", address: "110 Alexander Dr., Woodbury, TN 37190" },
+    { name: "Highway Department", phone: "(615) 563-4213", address: "900 Old McMinnville Rd., Woodbury, TN 37190" },
+  ];
+
+  const commissioners = [
+    { district: "District 1", members: [
+      { name: "Nathan Luna", phone: "", email: "Nathan.Luna@CannonCountyTN.gov" },
+      { name: "Nathan Sanders", phone: "", email: "Nathan.Sanders@CannonCountyTN.gov" },
+    ]},
+    { district: "District 2", members: [
+      { name: "Karen Ashford", phone: "(615) 563-4183", email: "Karen.Ashford@cannoncountytn.gov" },
+      { name: "Chris Singleton", phone: "", email: "Chris.Singleton@CannonCountyTN.gov" },
+    ]},
+    { district: "District 3", members: [
+      { name: "Curtis George", phone: "", email: "Curtis.George@CannonCountyTN.gov" },
+      { name: "Eddie Mears", phone: "(615) 804-7250", email: "Eddie.Mears@CannonCountyTN.gov" },
+    ]},
+    { district: "District 4", members: [
+      { name: "Robert B. Brandon", phone: "(615) 563-6900", email: "Brent.Brandon@CannonCountyTN.gov" },
+      { name: "Randy Gannon", phone: "", email: "Randy.Gannon@CannonCountyTN.gov" },
+    ]},
+    { district: "District 5", members: [
+      { name: "Kristal Alexander", phone: "", email: "Kristal.Alexander@CannonCountyTN.gov" },
+      { name: "Tony Burnett", phone: "", email: "Tony.Burnett@CannonCountyTN.gov" },
+    ]},
   ];
 
   const faqs = [
     { q: "When is property tax due?", a: "Cannon County property taxes are due by February 28 each year without penalty. Payments can be made at the Trustee's office at 200 W. Main St., Woodbury, or online at cannoncountytn.gov." },
-    { q: "How do I get a copy of a deed or property record?", a: "Deed and property records are maintained by the County Register of Deeds at 200 W. Main St., Woodbury. Call (615) 563-4257. Many older records are also available online through the Tennessee Secretary of State." },
+    { q: "How do I get a copy of a deed or property record?", a: "Deed and property records are maintained by the County Register of Deeds at 200 W. Main St., Suite #9, Woodbury. Call (615) 563-2041. Many older records are also available online through the Tennessee Secretary of State." },
     { q: "Where do I vote in Cannon County?", a: "Cannon County has a single voting location for most elections: the Cannon County Complex at 301 Lehman St., Woodbury. Check the Cannon County Election Commission at (615) 563-4277 for current precinct assignments." },
     { q: "How do I renew my vehicle registration?", a: "Visit the County Clerk's office at 200 W. Main St., Woodbury, or renew online at tnvehicleregistration.com. You'll need your current registration, proof of insurance, and payment." },
     { q: "What can I take to the convenience centers?", a: "Household garbage, recycling (cardboard, paper, plastics #1–#7, glass, cans), used motor oil, and tires (limit 4). Hazardous waste, construction debris, and large appliances require special disposal — call the Road Department." },
@@ -736,13 +761,44 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
         <div className="grid gap-2">
           {contacts.map((c, i) => (
             <div key={i} className="flex items-start justify-between gap-3 p-3 rounded-xl border bg-card">
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold">{c.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{c.address}</p>
+                {(c as any).person && <p className="text-xs text-muted-foreground mt-0.5">{(c as any).person}</p>}
+                {c.address && <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1"><MapPin size={11}/>{c.address}</p>}
+                {(c as any).email && <a href={`mailto:${(c as any).email}`} className="text-xs text-primary mt-0.5 block truncate">{(c as any).email}</a>}
               </div>
-              <a href={`tel:${c.phone}`} className="text-xs font-semibold text-primary flex-shrink-0 flex items-center gap-1 mt-0.5">
-                <Phone size={12}/>{c.phone}
-              </a>
+              {c.phone ? (
+                <a href={`tel:${c.phone}`} className="text-xs font-semibold text-primary flex-shrink-0 flex items-center gap-1 mt-0.5">
+                  <Phone size={12}/>{c.phone}
+                </a>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* County Commissioners */}
+      <div>
+        <h2 className="text-lg font-bold mb-3" style={{ fontFamily: "var(--font-display)" }}>County Commissioners</h2>
+        <div className="grid gap-3">
+          {commissioners.map((d, i) => (
+            <div key={i} className="rounded-xl border bg-card p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">{d.district}</p>
+              <div className="grid gap-2">
+                {d.members.map((m, j) => (
+                  <div key={j} className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{m.name}</p>
+                      <a href={`mailto:${m.email}`} className="text-xs text-primary truncate block">{m.email}</a>
+                    </div>
+                    {m.phone ? (
+                      <a href={`tel:${m.phone}`} className="text-xs font-semibold text-primary flex-shrink-0 flex items-center gap-1">
+                        <Phone size={12}/>{m.phone}
+                      </a>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
