@@ -690,7 +690,6 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
 
   const conveniences = [
     { name: "Main Convenience Center", address: "1165 McMinnville Hwy, Woodbury, TN", hours: "Mon–Tue & Thu–Sat 8:00 AM – 5:00 PM · Wed, Sun & Federal Holidays CLOSED", phone: "(615) 563-5693" },
-    { name: "Liberty Convenience Center", address: "Liberty Community, Cannon County, TN", hours: "Sat–Sun 7:00 AM – 5:00 PM · Wed & Holidays CLOSED" },
   ];
 
   const contacts = [
