@@ -444,19 +444,132 @@ async function upsertDocument(
   }
 }
 
+// ── Scraper 3: Announcements → alerts ─────────────────────────────────────────
+
+const ALERT_CATEGORIES = [
+  `${BASE}/category/announcements/`,
+  `${BASE}/category/notifications/`,
+  `${BASE}/category/news/`,
+];
+
+/** Guess an alert label from the post title + body text */
+function classifyAlertLabel(title: string, body: string): string {
+  const t = (title + " " + body).toLowerCase();
+  if (/vote|ballot|election|pass|approve|reject|ordinance|resolution/.test(t)) return "upcoming_vote";
+  if (/deadline|required|must|urgent|warning|mandatory|action|respond/.test(t)) return "action_needed";
+  if (/important|notice|alert|closure|closed|cancel|emergency/.test(t)) return "important";
+  return "fyi";
+}
+
+export async function scrapeAnnouncements(): Promise<{ inserted: number; updated: number; errors: string[] }> {
+  const stats = { inserted: 0, updated: 0, errors: [] as string[] };
+
+  for (const catUrl of ALERT_CATEGORIES) {
+    const html = await fetchHtml(catUrl);
+    if (!html) { stats.errors.push(`Failed: ${catUrl}`); continue; }
+
+    const $ = cheerio.load(html);
+    const postLinks: string[] = [];
+
+    // Collect post URLs from the category archive
+    $("a[href*='/20']").each((_, el) => {
+      const href = $(el).attr("href") || "";
+      if (/\/20\d\d\/\d\d\/\d\d\//.test(href) && !postLinks.includes(href)) {
+        postLinks.push(href);
+      }
+    });
+
+    await Promise.allSettled(
+      postLinks.slice(0, 15).map((link) => scrapeAnnouncementPost(link, stats))
+    );
+  }
+
+  return stats;
+}
+
+async function scrapeAnnouncementPost(
+  url: string,
+  stats: { inserted: number; updated: number; errors: string[] }
+) {
+  // Skip if we already have this alert
+  const { data: existing } = await supabase
+    .from("alerts")
+    .select("id")
+    .eq("source_url", url)
+    .maybeSingle();
+  if (existing) { stats.updated++; return; }
+
+  const html = await fetchHtml(url);
+  if (!html) return;
+
+  const $ = cheerio.load(html);
+
+  try {
+    const title = $("h1.entry-title, h1.post-title, article h1").first().text().trim()
+      || $("title").first().text().split("|")[0].trim();
+    if (!title || title.length < 3) return;
+
+    // Get the post body text
+    const bodyText = $(".entry-content, .post-content, article .content").first().text()
+      .replace(/\s+/g, " ").trim().slice(0, 1000);
+
+    // Skip posts that are just PDF dumps — the doc scraper handles those
+    const hasPdf = $("a[href$='.pdf']").length > 0;
+    const hasSubstantialText = bodyText.length > 80;
+    if (hasPdf && !hasSubstantialText) return;
+
+    // Build a clean summary (first 2 sentences or 200 chars)
+    const summary = bodyText
+      .split(/(?<=[.!?])\s+/)
+      .slice(0, 2)
+      .join(" ")
+      .slice(0, 220)
+      .trim() || title;
+
+    const label = classifyAlertLabel(title, bodyText);
+
+    const alert = {
+      title: title.replace(/\s+/g, " ").trim().slice(0, 160),
+      summary,
+      label,
+      body: classifyBody(title) as string,
+      is_breaking: false,
+      is_published: true,
+      source_url: url,
+    };
+
+    const { error } = await supabase.from("alerts").insert(alert);
+    if (error) {
+      stats.errors.push(`Insert alert: ${error.message}`);
+    } else {
+      stats.inserted++;
+      await supabase.from("scraper_log").insert({
+        source: "cannoncountytn.gov/announcements",
+        url,
+        status: "success",
+        content_type: "alert",
+      });
+    }
+  } catch (err) {
+    stats.errors.push(`Announcement ${url}: ${err}`);
+  }
+}
+
 // ── Main runner ────────────────────────────────────────────────────────────────
 
 export async function runScraper(): Promise<{
   meetings: { inserted: number; updated: number; errors: string[] };
   documents: { inserted: number; updated: number; errors: string[] };
+  alerts: { inserted: number; updated: number; errors: string[] };
   ran_at: string;
 }> {
   console.log("[scraper] Starting run...");
   const ran_at = new Date().toISOString();
 
-  const [meetings, documents] = await Promise.allSettled([
+  const [meetings, documents, alerts] = await Promise.allSettled([
     scrapeEvents(),
     scrapeBlogPosts(),
+    scrapeAnnouncements(),
   ]);
 
   const meetingResult = meetings.status === "fulfilled"
@@ -467,20 +580,21 @@ export async function runScraper(): Promise<{
     ? documents.value
     : { inserted: 0, updated: 0, errors: [String((documents as PromiseRejectedResult).reason)] };
 
-  console.log("[scraper] Done.", {
-    meetings: meetingResult,
-    documents: documentResult,
-  });
+  const alertResult = alerts.status === "fulfilled"
+    ? alerts.value
+    : { inserted: 0, updated: 0, errors: [String((alerts as PromiseRejectedResult).reason)] };
+
+  console.log("[scraper] Done.", { meetings: meetingResult, documents: documentResult, alerts: alertResult });
 
   // Log the overall run
   try {
     await supabase.from("scraper_log").insert({
       source: "scraper:run",
       url: BASE,
-      status: meetingResult.errors.length + documentResult.errors.length === 0 ? "success" : "partial",
+      status: meetingResult.errors.length + documentResult.errors.length + alertResult.errors.length === 0 ? "success" : "partial",
       content_type: "run_summary",
     });
   } catch (_) { /* non-fatal */ }
 
-  return { meetings: meetingResult, documents: documentResult, ran_at };
+  return { meetings: meetingResult, documents: documentResult, alerts: alertResult, ran_at };
 }
