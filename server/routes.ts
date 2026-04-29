@@ -482,5 +482,45 @@ export function registerRoutes(httpServer: Server, app: Express) {
     });
   });
 
+  // ── FEEDBACK ────────────────────────────────────────────────
+  app.post("/api/feedback", async (req, res) => {
+    const { name, email, message, category } = req.body;
+    if (!message || message.trim().length < 5) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    const RESEND_KEY = process.env.RESEND_API_KEY;
+    const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "estateofcreative@gmail.com";
+
+    if (RESEND_KEY) {
+      try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: "Cannon Pocket <onboarding@resend.dev>",
+            to: [ADMIN_EMAIL],
+            subject: `[Cannon Pocket Feedback] ${category || "General"}: ${message.slice(0, 60)}`,
+            html: `
+              <h2>New Feedback / Suggestion</h2>
+              <p><strong>Category:</strong> ${category || "General"}</p>
+              <p><strong>Name:</strong> ${name || "(anonymous)"}</p>
+              <p><strong>Email:</strong> ${email || "(not provided)"}</p>
+              <hr/>
+              <p><strong>Message:</strong></p>
+              <p>${message.replace(/\n/g, "<br/>")}</p>
+              <hr/>
+              <p style="color:#888;font-size:12px">Sent from Cannon Pocket app · ${new Date().toLocaleString("en-US", { timeZone: "America/Chicago" })} CDT</p>
+            `
+          })
+        });
+      } catch (err) {
+        console.error("Resend error:", err);
+      }
+    }
+
+    res.json({ ok: true });
+  });
+
   return httpServer;
 }

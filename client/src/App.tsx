@@ -1993,6 +1993,168 @@ function AdminScreen() {
   );
 }
 
+// ── FEEDBACK MODAL ───────────────────────────────────────────
+function FeedbackModal({ onClose }: { onClose: () => void }) {
+  const { toast } = useToast();
+  const [form, setForm] = useState({ name: "", email: "", category: "suggestion", message: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.message.trim()) return;
+    setSubmitting(true);
+    try {
+      await apiRequest("POST", "/api/feedback", form);
+      setDone(true);
+    } catch {
+      toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputCls = "w-full px-3 py-2.5 rounded-xl border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card w-full max-w-md mx-0 sm:mx-4 rounded-t-2xl sm:rounded-2xl shadow-2xl border p-6"
+        onClick={e => e.stopPropagation()}>
+        {done ? (
+          <div className="text-center py-6">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ background: "var(--color-forest)" }}>
+              <CheckCircle size={28} color="white"/>
+            </div>
+            <p className="font-bold text-lg" style={{ fontFamily: "var(--font-display)" }}>Thanks!</p>
+            <p className="text-sm text-muted-foreground mt-1 mb-5">Your message has been sent. We read every submission.</p>
+            <button onClick={onClose} className="px-6 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: "var(--color-forest)" }}>Close</button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Send Feedback</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Suggestions, questions, feature requests — all welcome.</p>
+              </div>
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted"><X size={18}/></button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <select value={form.category} onChange={e => set("category", e.target.value)} className={inputCls}>
+                <option value="suggestion">Suggestion / Feature Request</option>
+                <option value="question">Question</option>
+                <option value="bug">Something\'s broken</option>
+                <option value="content">Content correction</option>
+                <option value="other">Other</option>
+              </select>
+              <textarea value={form.message} onChange={e => set("message", e.target.value)}
+                placeholder="Your message…" rows={4} required
+                className={`${inputCls} resize-none`}/>
+              <input value={form.name} onChange={e => set("name", e.target.value)}
+                placeholder="Your name (optional)" className={inputCls}/>
+              <input value={form.email} onChange={e => set("email", e.target.value)}
+                placeholder="Your email (optional — if you\'d like a reply)" type="email" className={inputCls}/>
+              <button type="submit" disabled={submitting || !form.message.trim()}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ background: "var(--color-forest)" }}>
+                {submitting ? <Loader2 size={16} className="animate-spin"/> : <Send size={15}/>}
+                {submitting ? "Sending…" : "Send Message"}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── ONBOARDING TOUR ───────────────────────────────────────────
+const TOUR_KEY = "cp-tour-v1";
+
+const TOUR_STEPS = [
+  {
+    id: "meetings",
+    title: "Public Meetings",
+    body: "See every upcoming County Commission, School Board, Planning Commission, and Budget meeting — with agendas and live-stream links.",
+    icon: Calendar,
+    pulse: "bottom-nav-meetings",
+  },
+  {
+    id: "directory",
+    title: "Shop Local",
+    body: "Find Cannon County businesses, browse hours and deals, and support your neighbors. List your own business free.",
+    icon: Store,
+    pulse: "bottom-nav-directory",
+  },
+  {
+    id: "dump",
+    title: "Is the Dump Open?",
+    body: "Tap this button on the home screen anytime to instantly see whether the Convenience Center is open or closed right now.",
+    icon: Info,
+    pulse: "hero-dump-btn",
+  },
+  {
+    id: "corruption",
+    title: "Report Corruption",
+    body: "Found something shady? The County Info page has direct links to the TN Comptroller hotline, FBI, and Patriot Punk Network — all anonymous.",
+    icon: Flag,
+    pulse: "bottom-nav-county",
+  },
+];
+
+function OnboardingTour({ onDone, onNav }: { onDone: () => void; onNav: (s: string) => void }) {
+  const [step, setStep] = useState(0);
+  const current = TOUR_STEPS[step];
+  const Icon = current.icon;
+  const isLast = step === TOUR_STEPS.length - 1;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-card rounded-t-2xl shadow-2xl border-t-4 p-6 pb-8"
+        style={{ borderTopColor: "var(--color-forest)" }}>
+        {/* Progress dots */}
+        <div className="flex items-center gap-1.5 mb-5">
+          {TOUR_STEPS.map((_, i) => (
+            <div key={i} className="h-1.5 rounded-full flex-1 transition-all"
+              style={{ background: i <= step ? "var(--color-forest)" : "var(--color-cream-deep)" }}/>
+          ))}
+        </div>
+        <div className="flex items-start gap-4 mb-5">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--color-forest)" }}>
+            <Icon size={22} color="white"/>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
+              {step + 1} of {TOUR_STEPS.length}
+            </p>
+            <h3 className="font-bold text-xl leading-tight mb-1" style={{ fontFamily: "var(--font-display)" }}>
+              {current.title}
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">{current.body}</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onDone}
+            className="px-4 py-2 rounded-xl border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">
+            Skip tour
+          </button>
+          <button onClick={() => { if (isLast) { onDone(); } else { setStep(s => s + 1); } }}
+            className="flex-1 py-2 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
+            style={{ background: "var(--color-forest)" }}>
+            {isLast ? (
+              <><CheckCircle size={15}/> Get started</>
+            ) : (
+              <>Next <ChevronRight size={15}/></>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════
 // ROOT APP
 // ══════════════════════════════════════════════════════════════
@@ -2009,19 +2171,45 @@ const NAV_ITEMS = [
 
 type Screen = (typeof NAV_ITEMS)[number]["id"];
 
+const LOCKOUT_KEY = "cp-admin-lockout";
+const MAX_ATTEMPTS = 3;
+const LOCKOUT_MINUTES = 10;
+
 function AdminPasswordModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
   const [input, setInput] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
+  const [attempts, setAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(() => {
+    try {
+      const v = sessionStorage.getItem(LOCKOUT_KEY);
+      if (v) { const t = Number(v); return t > Date.now() ? t : null; }
+    } catch {}
+    return null;
+  });
   const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "cannonpocket-admin";
+
+  const isLocked = lockedUntil !== null && lockedUntil > Date.now();
+  const remainingMins = isLocked ? Math.ceil((lockedUntil! - Date.now()) / 60000) : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked) return;
     if (input === ADMIN_PASSWORD) {
+      try { sessionStorage.removeItem(LOCKOUT_KEY); } catch {}
       onSuccess();
     } else {
-      setError(true);
+      const next = attempts + 1;
+      setAttempts(next);
       setInput("");
-      setTimeout(() => setError(false), 2000);
+      if (next >= MAX_ATTEMPTS) {
+        const until = Date.now() + LOCKOUT_MINUTES * 60 * 1000;
+        setLockedUntil(until);
+        try { sessionStorage.setItem(LOCKOUT_KEY, String(until)); } catch {}
+        setError(`Too many attempts. Locked for ${LOCKOUT_MINUTES} minutes.`);
+      } else {
+        setError(`Incorrect password. ${MAX_ATTEMPTS - next} attempt${MAX_ATTEMPTS - next !== 1 ? "s" : ""} remaining.`);
+        setTimeout(() => setError(""), 3000);
+      }
     }
   };
 
@@ -2038,27 +2226,36 @@ function AdminPasswordModal({ onSuccess, onCancel }: { onSuccess: () => void; on
           </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="password"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder="Password"
-            autoFocus
-            className={`w-full px-4 py-3 rounded-xl border text-sm bg-background outline-none transition-colors ${
-              error ? "border-red-500 placeholder-red-400" : "border-border focus:border-primary"
-            }`}
-          />
-          {error && <p className="text-xs text-red-500">Incorrect password. Try again.</p>}
+          {isLocked ? (
+            <div className="rounded-xl border-2 border-red-300 bg-red-50 dark:bg-red-950/30 p-4 text-center">
+              <p className="text-sm font-semibold text-red-700 dark:text-red-400">Access locked</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">Too many failed attempts. Try again in {remainingMins} minute{remainingMins !== 1 ? "s" : ""}.</p>
+            </div>
+          ) : (
+            <input
+              type="password"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="Password"
+              autoFocus
+              className={`w-full px-4 py-3 rounded-xl border text-sm bg-background outline-none transition-colors ${
+                error ? "border-red-500 placeholder-red-400" : "border-border focus:border-primary"
+              }`}
+            />
+          )}
+          {error && !isLocked && <p className="text-xs text-red-500">{error}</p>}
           <div className="flex gap-3">
             <button type="button" onClick={onCancel}
               className="flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium hover:bg-muted transition-colors">
               Cancel
             </button>
-            <button type="submit"
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
-              style={{ background: "var(--color-forest)" }}>
-              Unlock
-            </button>
+            {!isLocked && (
+              <button type="submit"
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+                style={{ background: "var(--color-forest)" }}>
+                Unlock
+              </button>
+            )}
           </div>
         </form>
       </div>
@@ -2073,7 +2270,16 @@ function AppInner() {
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showDumpPopup, setShowDumpPopup] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showTour, setShowTour] = useState(() => {
+    try { return !sessionStorage.getItem(TOUR_KEY); } catch { return true; }
+  });
   const { dark, toggle } = useTheme();
+
+  const dismissTour = () => {
+    try { sessionStorage.setItem(TOUR_KEY, "1"); } catch {}
+    setShowTour(false);
+  };
 
   const SCREEN_TITLES: Record<Screen, string> = {
     home: "Cannon County", meetings: "Meetings", alerts: "Alerts",
@@ -2198,8 +2404,20 @@ function AppInner() {
         </div>
       </nav>
 
+      {/* Feedback floating button */}
+      {!showTour && (
+        <button onClick={() => setShowFeedback(true)}
+          className="fixed bottom-20 right-4 lg:bottom-6 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105"
+          style={{ background: "var(--color-bronze)" }}
+          aria-label="Send feedback">
+          <Send size={18} color="white"/>
+        </button>
+      )}
+
       <Toaster/>
       {showDumpPopup && <DumpHoursPopup onClose={() => setShowDumpPopup(false)}/>}
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)}/>}
+      {showTour && <OnboardingTour onDone={dismissTour} onNav={nav}/>}
     </div>
   );
 }
