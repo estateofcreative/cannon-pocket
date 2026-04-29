@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import supabase from "./supabase";
-import type { InsertMeeting, InsertAlert, InsertSubscriber } from "../shared/schema";
+import type { InsertMeeting, InsertAlert, InsertSubscriber, InsertCommunityEventSubmission } from "../shared/schema";
 import { runScraper } from "./scraper";
 
 export function registerRoutes(httpServer: Server, app: Express) {
@@ -520,6 +520,80 @@ export function registerRoutes(httpServer: Server, app: Express) {
     }
 
     res.json({ ok: true });
+  });
+
+  // ── COMMUNITY EVENT SUBMISSIONS ──────────────────────────────
+  app.post("/api/community-events", async (req, res) => {
+    const body: InsertCommunityEventSubmission = req.body;
+    if (!body.title || !body.event_date) {
+      return res.status(400).json({ error: "Title and event date are required" });
+    }
+    const { data, error } = await supabase
+      .from("community_event_submissions")
+      .insert({ ...body, status: "pending" })
+      .select()
+      .single();
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Email admin
+    const RESEND_KEY = process.env.RESEND_API_KEY;
+    const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "estateofcreative@gmail.com";
+    if (RESEND_KEY) {
+      try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: "Cannon Pocket <onboarding@resend.dev>",
+            to: [ADMIN_EMAIL],
+            subject: `[Cannon Pocket] New Event Submission: ${body.title}`,
+            html: `
+              <h2>New Community Event Submission</h2>
+              <p><strong>Title:</strong> ${body.title}</p>
+              <p><strong>Date:</strong> ${body.event_date}${body.event_time ? " at " + body.event_time : ""}</p>
+              <p><strong>Location:</strong> ${body.location || "(not provided)"}</p>
+              <p><strong>Description:</strong> ${(body.description || "(none)").replace(/\n/g, "<br/>")}</p>
+              <hr/>
+              <p><strong>Submitted by:</strong> ${body.contact_name || "(anonymous)"}</p>
+              <p><strong>Contact email:</strong> ${body.contact_email || "(none)"}</p>
+              <p><strong>Website:</strong> ${body.website_url || "(none)"}</p>
+              <hr/>
+              <p style="color:#888;font-size:12px">Submitted via Cannon Pocket · ${new Date().toLocaleString("en-US", { timeZone: "America/Chicago" })} CDT</p>
+              <p>Review in Admin → Events tab.</p>
+            `
+          })
+        });
+      } catch (err) {
+        console.error("Resend error (community event):", err);
+      }
+    }
+
+    res.json(data);
+  });
+
+  app.get("/api/community-events", async (_req, res) => {
+    const { data, error } = await supabase
+      .from("community_event_submissions")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  });
+
+  app.patch("/api/community-events/:id/review", async (req, res) => {
+    const { id } = req.params;
+    const { action, admin_notes } = req.body as { action: "approve" | "reject"; admin_notes?: string };
+    if (!action || !["approve", "reject"].includes(action)) {
+      return res.status(400).json({ error: "action must be approve or reject" });
+    }
+    const { data, error } = await supabase
+      .from("community_event_submissions")
+      .update({ status: action === "approve" ? "approved" : "rejected", admin_notes: admin_notes ?? null })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
   });
 
   return httpServer;

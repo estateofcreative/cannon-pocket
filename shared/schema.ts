@@ -132,6 +132,32 @@ export const BODY_LABELS: Record<MeetingBody, string> = {
   other: "Other",
 };
 
+export interface CommunityEventSubmission {
+  id: string;
+  title: string;
+  event_date: string;
+  event_time: string | null;
+  location: string | null;
+  description: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  website_url: string | null;
+  status: "pending" | "approved" | "rejected";
+  admin_notes: string | null;
+  created_at: string;
+}
+
+export interface InsertCommunityEventSubmission {
+  title: string;
+  event_date: string;
+  event_time?: string;
+  location?: string;
+  description?: string;
+  contact_name?: string;
+  contact_email?: string;
+  website_url?: string;
+}
+
 export const LABEL_CONFIG: Record<AlertLabel, { label: string; color: string }> = {
   fyi: { label: "FYI", color: "bg-slate-100 text-slate-700" },
   important: { label: "Important", color: "bg-amber-100 text-amber-800" },

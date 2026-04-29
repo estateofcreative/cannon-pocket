@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import type {
   Meeting, Alert, Document, Business, Subscriber,
-  MeetingBody, AlertLabel, InsertMeeting, InsertAlert
+  MeetingBody, AlertLabel, InsertMeeting, InsertAlert,
+  CommunityEventSubmission, InsertCommunityEventSubmission
 } from "../../shared/schema";
 import { BODY_LABELS } from "../../shared/schema";
 
@@ -296,7 +297,7 @@ function HomeScreen({ onNav, onDump }: { onNav: (s: string) => void; onDump: () 
             { label: "Is the Dump Open?", action: "dump",                                  icon: <Info size={14}/> },
             { label: "Next Meetings",     screen: "meetings",                              icon: <Calendar size={14}/> },
             { label: "Find a Doc",        screen: "documents",                             icon: <FileText size={14}/> },
-            { label: "FY2026 Budget",     href: "https://cannoncountytn.gov/budget/",     icon: <DollarSign size={14}/> },
+            { label: "FY2026 Budget",     href: "https://cannoncountytn.gov/finance/",    icon: <DollarSign size={14}/> },
           ].map(b => (
             b.href
               ? <a key={b.label} href={b.href} target="_blank" rel="noreferrer"
@@ -387,7 +388,7 @@ function HomeScreen({ onNav, onDump }: { onNav: (s: string) => void; onDump: () 
       {/* Upcoming meetings */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Upcoming Meetings</h2>
+          <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Upcoming Meetings & Events</h2>
           <button onClick={() => onNav("meetings")} className="text-xs text-primary font-semibold flex items-center gap-1">
             See all <ChevronRight size={14}/>
           </button>
@@ -417,10 +418,105 @@ function HomeScreen({ onNav, onDump }: { onNav: (s: string) => void; onDump: () 
   );
 }
 
+// ── SUBMIT EVENT MODAL ────────────────────────────────────────
+function SubmitEventModal({ onClose }: { onClose: () => void }) {
+  const { toast } = useToast();
+  const [form, setForm] = useState<InsertCommunityEventSubmission>({
+    title: "", event_date: ""
+  });
+  const [submitted, setSubmitted] = useState(false);
+
+  const submit = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/community-events", form);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => { setSubmitted(true); },
+    onError: (e: any) => toast({ title: "Submission failed", description: e.message, variant: "destructive" }),
+  });
+
+  const inputCls = "w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30";
+  const set = (k: keyof InsertCommunityEventSubmission, v: string) => setForm(p => ({ ...p, [k]: v }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-card rounded-t-2xl sm:rounded-2xl shadow-2xl p-6 w-full max-w-lg border max-h-[90vh] overflow-y-auto">
+        {submitted ? (
+          <div className="text-center py-8">
+            <CheckCircle size={48} className="mx-auto mb-4" style={{ color: "var(--color-forest)" }}/>
+            <h2 className="text-lg font-bold mb-1" style={{ fontFamily: "var(--font-display)" }}>Event Submitted!</h2>
+            <p className="text-sm text-muted-foreground mb-6">Thanks for sharing! Our team will review and add it to the calendar.</p>
+            <button onClick={onClose} className="px-6 py-2 rounded-lg text-sm font-semibold text-white" style={{ background: "var(--color-forest)" }}>Done</button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Submit a Community Event</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Food drives, markets, festivals, meetings — share what's happening in Cannon County.</p>
+              </div>
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted ml-2 flex-shrink-0"><X size={16}/></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Event Name *</label>
+                <input placeholder="e.g. Coffee & Cars Car Show" value={form.title} onChange={e => set("title", e.target.value)} className={inputCls}/>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Date *</label>
+                  <input type="date" value={form.event_date} onChange={e => set("event_date", e.target.value)} className={inputCls}/>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Time</label>
+                  <input type="time" value={form.event_time ?? ""} onChange={e => set("event_time", e.target.value)} className={inputCls}/>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Location</label>
+                <input placeholder="e.g. Woodbury Town Square" value={form.location ?? ""} onChange={e => set("location", e.target.value)} className={inputCls}/>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Description</label>
+                <textarea rows={3} placeholder="Tell people what to expect..." value={form.description ?? ""} onChange={e => set("description", e.target.value)}
+                  className={inputCls + " resize-none"}/>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Your Name</label>
+                  <input placeholder="(optional)" value={form.contact_name ?? ""} onChange={e => set("contact_name", e.target.value)} className={inputCls}/>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Your Email</label>
+                  <input type="email" placeholder="(optional)" value={form.contact_email ?? ""} onChange={e => set("contact_email", e.target.value)} className={inputCls}/>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Website / Facebook Link</label>
+                <input placeholder="https://..." value={form.website_url ?? ""} onChange={e => set("website_url", e.target.value)} className={inputCls}/>
+              </div>
+            </div>
+            <button
+              onClick={() => submit.mutate()}
+              disabled={!form.title || !form.event_date || submit.isPending}
+              className="w-full mt-5 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
+              style={{ background: "var(--color-forest)" }}>
+              {submit.isPending ? <Loader2 size={15} className="animate-spin"/> : <Send size={15}/>}
+              Submit Event
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── MEETINGS ──────────────────────────────────────────────────
 function MeetingsScreen() {
   const [filter, setFilter] = useState<"all" | MeetingBody>("all");
   const [showPast, setShowPast] = useState(false);
+  const [showSubmitEvent, setShowSubmitEvent] = useState(false);
 
   const { data: meetings, isLoading } = useQuery<Meeting[]>({
     queryKey: showPast ? ["/api/meetings/all"] : ["/api/meetings"],
@@ -438,9 +534,17 @@ function MeetingsScreen() {
 
   return (
     <div className="screen-enter space-y-4 pb-8">
-      <div>
-        <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Meetings Center</h1>
-        <p className="text-sm text-muted-foreground mt-1">Public meetings for all Cannon County governing bodies. Agendas posted 72 hours before each meeting.</p>
+      {showSubmitEvent && <SubmitEventModal onClose={() => setShowSubmitEvent(false)}/>}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Meetings & Events</h1>
+          <p className="text-sm text-muted-foreground mt-1">Public meetings and community events for Cannon County. Agendas posted 72 hours before each meeting.</p>
+        </div>
+        <button onClick={() => setShowSubmitEvent(true)}
+          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white mt-1"
+          style={{ background: "var(--color-bronze)" }}>
+          <Plus size={13}/> Submit Event
+        </button>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
@@ -1499,10 +1603,116 @@ function MyAlertsScreen() {
   );
 }
 
+
+// ── ADMIN EVENTS TAB ────────────────────────────────────────────
+function AdminEventsTab() {
+  const { toast } = useToast();
+  const { data: submissions, isLoading, refetch } =
+    useQuery<CommunityEventSubmission[]>({ queryKey: ["/api/community-events"] });
+  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
+
+  const reviewMutation = useMutation({
+    mutationFn: async ({ id, action, admin_notes }: { id: string; action: "approve" | "reject"; admin_notes?: string }) => {
+      const res = await apiRequest("PATCH", `/api/community-events/${id}/review`, { action, admin_notes });
+      if (!res.ok) throw new Error("Review failed");
+      return res.json();
+    },
+    onSuccess: (_d, vars) => {
+      toast({ title: vars.action === "approve" ? "Event approved" : "Event rejected" });
+      refetch();
+    },
+    onError: () => toast({ title: "Action failed", variant: "destructive" }),
+  });
+
+  const filtered = filter === "all" ? submissions : submissions?.filter(s => s.status === filter);
+  const pending = submissions?.filter(s => s.status === "pending").length ?? 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-bold">Community Event Submissions</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{pending} pending review</p>
+        </div>
+        <div className="flex gap-1">
+          {(["all", "pending", "approved", "rejected"] as const).map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-colors ${
+                filter === f
+                  ? "text-white"
+                  : "border border-border text-muted-foreground hover:text-foreground"
+              }`}
+              style={filter === f ? { background: "var(--color-forest)" } : {}}>
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-24 rounded-xl border bg-card animate-pulse"/>)}</div>
+      ) : filtered?.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Calendar size={32} className="mx-auto mb-3 opacity-40"/>
+          <p className="text-sm">No {filter === "all" ? "" : filter + " "}submissions.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered?.map(sub => (
+            <div key={sub.id} className="rounded-xl border bg-card p-4">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm">{sub.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {sub.event_date}{sub.event_time ? " · " + sub.event_time : ""}
+                    {sub.location ? " · " + sub.location : ""}
+                  </p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${
+                  sub.status === "pending" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                  : sub.status === "approved" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                  : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                }`}>{sub.status}</span>
+              </div>
+              {sub.description && <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{sub.description}</p>}
+              <div className="text-xs text-muted-foreground mb-3">
+                {sub.contact_name && <span>By {sub.contact_name}</span>}
+                {sub.contact_email && <span> · {sub.contact_email}</span>}
+                {sub.website_url && (
+                  <> · <a href={sub.website_url} target="_blank" rel="noreferrer" className="underline hover:text-primary">{sub.website_url}</a></>
+                )}
+              </div>
+              {sub.status === "pending" && (
+                <div className="flex gap-2">
+                  <button onClick={() => reviewMutation.mutate({ id: sub.id, action: "approve" })}
+                    disabled={reviewMutation.isPending}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+                    style={{ background: "var(--color-forest)" }}>
+                    <CheckCircle size={12}/> Approve
+                  </button>
+                  <button onClick={() => reviewMutation.mutate({ id: sub.id, action: "reject" })}
+                    disabled={reviewMutation.isPending}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50">
+                    <X size={12}/> Reject
+                  </button>
+                </div>
+              )}
+              {sub.admin_notes && (
+                <p className="text-xs text-muted-foreground mt-2 italic">Note: {sub.admin_notes}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 // ── ADMIN ─────────────────────────────────────────────────────
 function AdminScreen() {
   const { toast } = useToast();
-  const [tab, setTab] = useState<"meetings" | "alerts" | "businesses" | "subscribers" | "scraper">("meetings");
+  const [tab, setTab] = useState<"meetings" | "alerts" | "businesses" | "subscribers" | "scraper" | "events">("meetings");
 
   // ── Meetings admin ─────────────────────────────────────────
   const { data: meetings, isLoading: mldr, refetch: refetchMeetings } =
@@ -1671,7 +1881,7 @@ function AdminScreen() {
 
       {/* Tab nav */}
       <div className="flex gap-2 border-b border-border pb-0">
-        {(["meetings","alerts","businesses","subscribers","scraper"] as const).map(t => (
+        {(["meetings","alerts","businesses","subscribers","events","scraper"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-3 py-2 text-xs font-semibold capitalize border-b-2 transition-colors -mb-px ${
               tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
@@ -1892,6 +2102,9 @@ function AdminScreen() {
           </div>
         </div>
       )}
+
+      {/* ─── EVENTS TAB ─── */}
+      {tab === "events" && <AdminEventsTab/>}
 
       {/* ─── SCRAPER TAB ─── */}
       {tab === "scraper" && (
@@ -2160,7 +2373,7 @@ function OnboardingTour({ onDone, onNav }: { onDone: () => void; onNav: (s: stri
 // ══════════════════════════════════════════════════════════════
 const NAV_ITEMS = [
   { id: "home",      label: "Home",       icon: Home },
-  { id: "meetings",  label: "Meetings",   icon: Calendar },
+  { id: "meetings",  label: "Meetings & Events",   icon: Calendar },
   { id: "directory", label: "Shop Local",  icon: Store },
   { id: "alerts",    label: "Alerts",     icon: Bell },
   { id: "documents", label: "Docs",       icon: FileText },
@@ -2282,7 +2495,7 @@ function AppInner() {
   };
 
   const SCREEN_TITLES: Record<Screen, string> = {
-    home: "Cannon County", meetings: "Meetings", alerts: "Alerts",
+    home: "Cannon County", meetings: "Meetings & Events", alerts: "Alerts",
     documents: "Documents", county: "County Info", directory: "Shop Local",
     "my-alerts": "My Alerts", admin: "Admin",
   };
