@@ -217,34 +217,52 @@ function getDumpStatus(): { open: boolean; message: string; note?: string } {
 
 function DumpHoursPopup({ onClose }: { onClose: () => void }) {
   const status = getDumpStatus();
+  const openColor = "#16a34a";  // green-600
+  const closedColor = "#dc2626"; // red-600
+  const statusColor = status.open ? openColor : closedColor;
+  const statusBg = status.open ? "#dcfce7" : "#fee2e2";   // green-100 / red-100
+  const statusBgDark = status.open ? "rgba(22,163,74,0.15)" : "rgba(220,38,38,0.15)";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-card rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 border" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: status.open ? "var(--color-forest)" : "var(--color-brick)" }}>
-            <Info size={20} color="white"/>
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
+        style={{ border: `2px solid ${statusColor}` }}
+        onClick={e => e.stopPropagation()}>
+        {/* Status banner */}
+        <div className="px-5 py-4 flex items-center gap-3"
+          style={{ background: `var(--dump-status-bg, ${statusBg})` }}
+          ref={el => { if (el) el.style.setProperty('--dump-status-bg', window.matchMedia('(prefers-color-scheme: dark)').matches ? statusBgDark : statusBg); }}>
+          <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 font-black text-white text-lg"
+            style={{ background: statusColor }}>
+            {status.open ? "✓" : "✕"}
           </div>
           <div>
-            <p className="font-bold text-base" style={{ fontFamily: "var(--font-display)" }}>
-              {status.message}
+            <p className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: statusColor }}>
+              {status.open ? "Open Now" : "Closed"}
+            </p>
+            <p className="font-bold text-lg leading-tight" style={{ fontFamily: "var(--font-display)", color: statusColor }}>
+              The Dump is{" "}
+              <span style={{ color: statusColor }}>{status.open ? "OPEN" : "CLOSED"}</span>
             </p>
             {status.note && <p className="text-xs text-muted-foreground mt-0.5">{status.note}</p>}
           </div>
         </div>
-        <div className="text-xs text-muted-foreground space-y-1 border-t pt-3">
-          <p className="font-semibold text-foreground text-sm mb-1">Main Convenience Center Hours</p>
+        {/* Hours detail */}
+        <div className="px-5 py-4 text-xs text-muted-foreground space-y-1">
+          <p className="font-semibold text-foreground text-sm mb-1">The Dump — Hours</p>
           <p>Mon, Tue, Thu, Fri, Sat — 8:00 AM to 5:00 PM</p>
-          <p>Wednesday, Sunday &amp; Holidays — <span className="font-semibold">CLOSED</span></p>
+          <p>Wednesday, Sunday &amp; Holidays — <span className="font-semibold text-foreground">CLOSED</span></p>
+          <p className="text-muted-foreground mt-1">210 Alexander Dr., Woodbury, TN · (615) 563-4922</p>
           <a href="https://cannoncountytn.gov/cannon-county-convenience-center/" target="_blank" rel="noreferrer"
             className="flex items-center gap-1 mt-2 text-primary font-semibold hover:underline">
-            <ExternalLink size={11}/> Dump Details
+            <ExternalLink size={11}/> Official Details
           </a>
         </div>
-        <button onClick={onClose}
-          className="mt-4 w-full py-2 rounded-xl border text-sm font-medium hover:bg-muted transition-colors">
-          Close
-        </button>
+        <div className="px-5 pb-4">
+          <button onClick={onClose}
+            className="w-full py-2 rounded-xl border text-sm font-medium hover:bg-muted transition-colors">
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -315,22 +333,54 @@ function HomeScreen({ onNav, onDump }: { onNav: (s: string) => void; onDump: () 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { val: "$45.4M", label: "FY25–26 Budget", sub: "Approved Oct 2025", color: "var(--color-forest)" },
+          { val: "$45.4M", label: "FY25–26 Budget", sub: "FY2025–26 Approved", href: "https://cannoncountytn.gov/finance/", color: "var(--color-forest)" },
           { val: next ? fmtDate(next.meeting_date) : (mldr ? "—" : "None"), label: "Next Meeting", sub: next?.title.split("—")[0].trim() ?? "", color: "var(--color-bronze)" },
           { val: String(alerts?.filter(a=>a.label==="action_needed").length ?? 0), label: "Action Items", sub: "Needs attention", color: "var(--color-brick)" },
-          { val: String(subCount?.count ?? 0), label: "Subscribers", sub: "Civic alert list", color: "var(--color-forest)" },
+          { val: String(subCount?.count ?? 0), label: "Subscribers", sub: "Join the alert list →", onClick: () => onNav("my-alerts"), color: "var(--color-forest)" },
         ].map((k, i) => (
-          <div key={i} className="rounded-xl border bg-card p-4">
-            {mldr || aldr ? (
-              <><Skeleton className="h-7 w-24 mb-2"/><Skeleton className="h-3 w-20"/></>
-            ) : (
-              <>
-                <div className="text-2xl font-bold mb-0.5" style={{ fontFamily: "var(--font-display)", color: k.color }}>{k.val}</div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{k.label}</div>
-                <div className="text-xs text-muted-foreground mt-0.5 truncate">{k.sub}</div>
-              </>
-            )}
-          </div>
+          (k as any).href
+            ? (
+              <a key={i} href={(k as any).href} target="_blank" rel="noreferrer"
+                className="rounded-xl border bg-card p-4 block hover:border-primary/50 transition-colors group cursor-pointer">
+                {mldr || aldr ? (
+                  <><Skeleton className="h-7 w-24 mb-2"/><Skeleton className="h-3 w-20"/></>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold mb-0.5" style={{ fontFamily: "var(--font-display)", color: k.color }}>{k.val}</div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{k.label}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 truncate flex items-center gap-1">{k.sub}<ExternalLink size={10} className="opacity-0 group-hover:opacity-60 transition-opacity"/></div>
+                  </>
+                )}
+              </a>
+            )
+            : (k as any).onClick
+            ? (
+              <button key={i} onClick={(k as any).onClick}
+                className="rounded-xl border bg-card p-4 block w-full text-left hover:border-primary/50 transition-colors group cursor-pointer">
+                {mldr || aldr ? (
+                  <><Skeleton className="h-7 w-24 mb-2"/><Skeleton className="h-3 w-20"/></>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold mb-0.5" style={{ fontFamily: "var(--font-display)", color: k.color }}>{k.val}</div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{k.label}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 truncate" style={{ color: "var(--color-forest)" }}>{k.sub}</div>
+                  </>
+                )}
+              </button>
+            )
+            : (
+              <div key={i} className="rounded-xl border bg-card p-4">
+                {mldr || aldr ? (
+                  <><Skeleton className="h-7 w-24 mb-2"/><Skeleton className="h-3 w-20"/></>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold mb-0.5" style={{ fontFamily: "var(--font-display)", color: k.color }}>{k.val}</div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{k.label}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 truncate">{k.sub}</div>
+                  </>
+                )}
+              </div>
+            )
         ))}
       </div>
 
@@ -380,10 +430,10 @@ function MeetingsScreen() {
 
   const filters: { key: "all" | MeetingBody; label: string }[] = [
     { key: "all", label: "All" },
-    { key: "county_commission", label: "Commission" },
+    { key: "county_commission", label: "County Commission" },
     { key: "budget_committee", label: "Budget" },
     { key: "school_board", label: "School Board" },
-    { key: "planning_commission", label: "Planning" },
+    { key: "planning_commission", label: "Planning Commission" },
   ];
 
   return (
@@ -436,6 +486,12 @@ function MeetingsScreen() {
                   <a href={m.agenda_url} target="_blank" rel="noreferrer"
                     className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-border hover:border-primary hover:text-primary transition-colors">
                     <FileText size={12}/> Agenda
+                  </a>
+                )}
+                {!m.agenda_url && m.source_url && (
+                  <a href={m.source_url} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border border-border hover:border-primary hover:text-primary transition-colors">
+                    <ExternalLink size={12}/> Source
                   </a>
                 )}
                 {m.directions_url && (
@@ -689,7 +745,7 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
   }, [scrollTo]);
 
   const conveniences = [
-    { name: "Main Convenience Center", address: "1165 McMinnville Hwy, Woodbury, TN", hours: "Mon–Tue & Thu–Sat 8:00 AM – 5:00 PM · Wed, Sun & Federal Holidays CLOSED", phone: "(615) 563-5693" },
+    { name: "The Dump", address: "210 Alexander Dr., Woodbury, TN 37190", hours: "Mon–Tue & Thu–Sat 8:00 AM – 5:00 PM · Wed, Sun & Federal Holidays CLOSED", phone: "(615) 563-4922" },
   ];
 
   const contacts = [
@@ -728,7 +784,7 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
   const faqs = [
     { q: "When is property tax due?", a: "Cannon County property taxes are due by February 28 each year without penalty. Payments can be made at the Trustee's office at 200 W. Main St., Woodbury, or online at cannoncountytn.gov." },
     { q: "How do I get a copy of a deed or property record?", a: "Deed and property records are maintained by the County Register of Deeds at 200 W. Main St., Suite #9, Woodbury. Call (615) 563-2041. Many older records are also available online through the Tennessee Secretary of State." },
-    { q: "Where do I vote in Cannon County?", a: "Cannon County has 8 polling precincts. Your polling place depends on your precinct — common locations include Woodbury Grammar School, Cannon County High School, East Side School, West Side School, and community centers in Auburntown, Gassaway, and Bradyville. Contact the Election Commission at (615) 563-5650 or election@cannoncountytn.gov, or visit their office at 120 S. Tatum St., Woodbury (Mon–Fri, 8 AM–4 PM) for your current precinct assignment." },
+    { q: "Where do I vote in Cannon County?", a: "Cannon County has 8 polling precincts. Your polling place depends on your precinct — common locations include Woodbury Grammar School, Cannon County High School, East Side School, West Side School, and community centers in Auburntown, Gassaway, and Bradyville. Contact the Election Commission at (615) 563-5650 or election@cannoncountytn.gov, or visit their office at 120 S. Tatum St., Woodbury (Mon–Fri, 8 AM–4 PM).", link: { text: "Find my voting location", url: "https://cannoncountytn.gov/election-commission-2/" } },
     { q: "How do I renew my vehicle registration?", a: "Visit the County Clerk's office at 200 W. Main St., Woodbury, or renew online at tnvehicleregistration.com. You'll need your current registration, proof of insurance, and payment." },
     { q: "What can I take to the convenience centers?", a: "Household garbage, recycling (cardboard, paper, plastics #1–#7, glass, cans), used motor oil, and tires (limit 4). Hazardous waste, construction debris, and large appliances require special disposal — call the Road Department." },
     { q: "How do I attend a public meeting?", a: "All County Commission, Budget Committee, School Board, and Planning Commission meetings are open to the public. Agendas are posted 72 hours in advance on cannoncountytn.gov. Public comment is generally allowed at the beginning of each meeting." },
@@ -743,7 +799,6 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
 
       {/* Convenience Centers */}
       <div>
-        <h2 className="text-lg font-bold mb-3" style={{ fontFamily: "var(--font-display)" }}>Convenience Centers / Dump Sites</h2>
         {conveniences.map((c, i) => (
           <div key={i} className="rounded-xl border bg-card p-4 mb-3">
             <p className="font-semibold text-sm mb-1">{c.name}</p>
@@ -820,6 +875,12 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
               {openFaq === i && (
                 <div className="px-4 pb-4 text-sm text-muted-foreground leading-relaxed border-t border-border pt-3">
                   {f.a}
+                  {(f as any).link && (
+                    <a href={(f as any).link.url} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1 mt-2 text-primary font-semibold hover:underline text-xs">
+                      <ExternalLink size={11}/> {(f as any).link.text}
+                    </a>
+                  )}
                 </div>
               )}
             </div>
@@ -878,14 +939,7 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
             </div>
             <ExternalLink size={14} className="text-muted-foreground flex-shrink-0"/>
           </a>
-          <a href="https://tncot.cc/fraud" target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-between p-3 rounded-lg border bg-background hover:border-brick/60 transition-colors group">
-            <div>
-              <p className="text-sm font-semibold">TN Comptroller — Fraud Hotline</p>
-              <p className="text-xs text-muted-foreground">1-800-232-5454 · tncot.cc/fraud — waste, fraud &amp; abuse</p>
-            </div>
-            <ExternalLink size={14} className="text-muted-foreground flex-shrink-0"/>
-          </a>
+
         </div>
         <p className="text-xs text-muted-foreground pt-1">
           All reports to the TN Comptroller Hotline are confidential. You are never required to give your name.
@@ -1283,8 +1337,8 @@ function DirectoryScreen() {
 
             {/* Offer banner — Enhanced & Featured only */}
             {b.offer && b.tier !== "free" && (
-              <div className="rounded-lg p-3 mb-3 text-sm font-medium flex items-start gap-2"
-                style={{ background: "var(--color-cream-deep)", borderLeft: "3px solid var(--color-forest)" }}>
+              <div className="rounded-lg p-3 mb-3 text-sm font-medium flex items-start gap-2 bg-muted"
+                style={{ borderLeft: "3px solid var(--color-forest)" }}>
                 <Tag size={14} className="flex-shrink-0 mt-0.5" style={{ color: "var(--color-forest)" }}/>
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wide block mb-0.5" style={{ color: "var(--color-forest)" }}>Special Offer</span>
@@ -2055,13 +2109,7 @@ function AppInner() {
             <Menu size={20}/>
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "var(--color-forest)" }}>
-              <svg viewBox="0 0 32 32" width="18" height="18" fill="none" aria-label="Cannon County">
-                <circle cx="16" cy="16" r="12" stroke="white" strokeWidth="2"/>
-                <path d="M10 22 L16 10 L22 22" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
-                <path d="M12 18 L20 18" stroke="white" strokeWidth="1.5"/>
-              </svg>
-            </div>
+            <img src="/cannon-pocket-logo.jpg" alt="Cannon Pocket" className="w-8 h-8 rounded-lg flex-shrink-0 object-cover" />
             <div className="hidden sm:block">
               <p className="text-sm font-bold leading-none" style={{ fontFamily: "var(--font-display)" }}>Cannon Pocket</p>
               <p className="text-xs text-muted-foreground leading-none mt-0.5">CANNON COUNTY, TN</p>
