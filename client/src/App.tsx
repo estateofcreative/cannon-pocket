@@ -440,8 +440,8 @@ function SubmitEventModal({ onClose }: { onClose: () => void }) {
   const set = (k: keyof InsertCommunityEventSubmission, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-card rounded-t-2xl sm:rounded-2xl shadow-2xl p-6 w-full max-w-lg border max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-card rounded-2xl shadow-2xl p-6 w-full max-w-lg border max-h-[85vh] overflow-y-auto">
         {submitted ? (
           <div className="text-center py-8">
             <CheckCircle size={48} className="mx-auto mb-4" style={{ color: "var(--color-forest)" }}/>
@@ -484,12 +484,12 @@ function SubmitEventModal({ onClose }: { onClose: () => void }) {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Your Name</label>
-                  <input placeholder="(optional)" value={form.contact_name ?? ""} onChange={e => set("contact_name", e.target.value)} className={inputCls}/>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Your Name *</label>
+                  <input placeholder="Jane Smith" value={form.contact_name ?? ""} onChange={e => set("contact_name", e.target.value)} className={inputCls}/>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Your Email</label>
-                  <input type="email" placeholder="(optional)" value={form.contact_email ?? ""} onChange={e => set("contact_email", e.target.value)} className={inputCls}/>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide block mb-1">Your Email *</label>
+                  <input type="email" placeholder="jane@example.com" value={form.contact_email ?? ""} onChange={e => set("contact_email", e.target.value)} className={inputCls}/>
                 </div>
               </div>
               <div>
@@ -499,7 +499,7 @@ function SubmitEventModal({ onClose }: { onClose: () => void }) {
             </div>
             <button
               onClick={() => submit.mutate()}
-              disabled={!form.title || !form.event_date || submit.isPending}
+              disabled={!form.title || !form.event_date || !form.contact_name || !form.contact_email || submit.isPending}
               className="w-full mt-5 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-opacity"
               style={{ background: "var(--color-forest)" }}>
               {submit.isPending ? <Loader2 size={15} className="animate-spin"/> : <Send size={15}/>}
@@ -2323,7 +2323,7 @@ function OnboardingTour({ onDone, onNav }: { onDone: () => void; onNav: (s: stri
   const isLast = step === TOUR_STEPS.length - 1;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm" style={{ paddingBottom: "72px" }}>
       <div className="w-full max-w-md bg-card rounded-t-2xl shadow-2xl border-t-4 p-6 pb-8"
         style={{ borderTopColor: "var(--color-forest)" }}>
         {/* Progress dots */}
