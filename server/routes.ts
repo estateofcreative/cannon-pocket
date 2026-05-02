@@ -424,16 +424,15 @@ export function registerRoutes(httpServer: Server, app: Express) {
     if (!['approve','reject'].includes(action)) {
       return res.status(400).json({ error: "action must be approve or reject" });
     }
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("businesses")
       .update({
         status: action === "approve" ? "active" : "rejected",
         is_active: action === "approve",
       })
-      .eq("id", req.params.id)
-      .select().single();
+      .eq("id", req.params.id);
     if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    res.json({ success: true, action });
   });
 
   // ── SCRAPER ───────────────────────────────────────────────────
