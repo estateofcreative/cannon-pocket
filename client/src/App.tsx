@@ -1019,6 +1019,14 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
             </div>
             <ExternalLink size={14} className="flex-shrink-0" style={{ color: "var(--color-bronze)" }}/>
           </a>
+          <a href="tel:18004774557"
+            className="flex items-center justify-between p-3 rounded-lg border bg-background hover:border-brick/60 transition-colors group">
+            <div>
+              <p className="text-sm font-semibold">TN Comptroller: 1-800-477-4557</p>
+              <p className="text-xs text-muted-foreground">Toll-free anonymous hotline, Mon–Fri 8am–4:30pm CT</p>
+            </div>
+            <Phone size={14} className="text-muted-foreground flex-shrink-0"/>
+          </a>
           <a href="https://www.fbi.gov/contact-us" target="_blank" rel="noreferrer"
             className="flex items-center justify-between p-3 rounded-lg border bg-background hover:border-brick/60 transition-colors group">
             <div>
@@ -2271,7 +2279,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
 // ══════════════════════════════════════════════════════════════
 const NAV_ITEMS = [
   { id: "home",      label: "Home",       icon: Home },
-  { id: "meetings",  label: "Meetings & Events",   icon: Calendar },
+  { id: "meetings",  label: "Meetings/Events",   icon: Calendar },
   { id: "directory", label: "Shop Local",  icon: Store },
   { id: "alerts",    label: "Alerts",     icon: Bell },
   { id: "documents", label: "Docs",       icon: FileText },
@@ -2385,7 +2393,7 @@ function AppInner() {
   const { dark, toggle } = useTheme();
 
   const SCREEN_TITLES: Record<Screen, string> = {
-    home: "Cannon County", meetings: "Meetings & Events", alerts: "Alerts",
+    home: "Cannon County", meetings: "Meetings/Events", alerts: "Alerts",
     documents: "Documents", county: "County Info", directory: "Shop Local",
     "my-alerts": "My Alerts", admin: "Admin",
   };

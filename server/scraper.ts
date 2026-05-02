@@ -257,9 +257,17 @@ async function upsertMeeting(
       .maybeSingle();
 
     if (existing) {
-      // Update only if we have new info (e.g. agenda URL was found)
-      if (meeting.agenda_url && !existing.source_url?.includes("wp-content")) {
-        await supabase.from("meetings").update({ agenda_url: meeting.agenda_url }).eq("id", existing.id);
+      // Always update source_url (county sometimes re-creates events at new URLs)
+      // Also update agenda_url if we found one
+      const updates: Record<string, unknown> = {};
+      if (meeting.source_url && meeting.source_url !== existing.source_url) {
+        updates.source_url = meeting.source_url;
+      }
+      if (meeting.agenda_url) {
+        updates.agenda_url = meeting.agenda_url;
+      }
+      if (Object.keys(updates).length > 0) {
+        await supabase.from("meetings").update(updates).eq("id", existing.id);
         stats.updated++;
       }
       return;
