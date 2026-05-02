@@ -908,7 +908,7 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
             <p className="font-semibold text-sm mb-1">{c.name}</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><MapPin size={11}/>{c.address}</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><Clock size={11}/>{c.hours}</p>
-            {c.phone && <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone size={11}/>{c.phone}</p>}
+            {c.phone && <a href={`tel:${c.phone.replace(/[^\d+]/g, "")}`} className="text-xs font-semibold text-primary flex items-center gap-1 mt-0.5"><Phone size={11}/>{c.phone}</a>}
           </div>
         ))}
       </div>
@@ -1019,22 +1019,6 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
             </div>
             <ExternalLink size={14} className="flex-shrink-0" style={{ color: "var(--color-bronze)" }}/>
           </a>
-          <a href="https://www.tn.gov/comptroller/section/hotline.html" target="_blank" rel="noreferrer"
-            className="flex items-center justify-between p-3 rounded-lg border bg-background hover:border-brick/60 transition-colors group">
-            <div>
-              <p className="text-sm font-semibold">TN Comptroller Hotline</p>
-              <p className="text-xs text-muted-foreground">Anonymous fraud reporting — state-level investigation</p>
-            </div>
-            <ExternalLink size={14} className="text-muted-foreground flex-shrink-0"/>
-          </a>
-          <a href="tel:18004774557"
-            className="flex items-center justify-between p-3 rounded-lg border bg-background hover:border-brick/60 transition-colors group">
-            <div>
-              <p className="text-sm font-semibold">TN Comptroller: 1-800-477-4557</p>
-              <p className="text-xs text-muted-foreground">Toll-free anonymous hotline, Mon–Fri 8am–4:30pm CT</p>
-            </div>
-            <Phone size={14} className="text-muted-foreground flex-shrink-0"/>
-          </a>
           <a href="https://www.fbi.gov/contact-us" target="_blank" rel="noreferrer"
             className="flex items-center justify-between p-3 rounded-lg border bg-background hover:border-brick/60 transition-colors group">
             <div>
@@ -1046,7 +1030,7 @@ function CountyScreen({ scrollTo }: { scrollTo?: "corruption" }) {
 
         </div>
         <p className="text-xs text-muted-foreground pt-1">
-          All reports to the TN Comptroller Hotline are confidential. You are never required to give your name.
+          All tips to Patriot Punk Network are confidential. You are never required to give your name.
         </p>
       </div>
 
@@ -2282,92 +2266,6 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── ONBOARDING TOUR ───────────────────────────────────────────
-const TOUR_KEY = "cp-tour-v1";
-
-const TOUR_STEPS = [
-  {
-    id: "meetings",
-    title: "Public Meetings",
-    body: "See every upcoming County Commission, School Board, Planning Commission, and Budget meeting — with agendas and live-stream links.",
-    icon: Calendar,
-    pulse: "bottom-nav-meetings",
-  },
-  {
-    id: "directory",
-    title: "Shop Local",
-    body: "Find Cannon County businesses, browse hours and deals, and support your neighbors. List your own business free.",
-    icon: Store,
-    pulse: "bottom-nav-directory",
-  },
-  {
-    id: "dump",
-    title: "Is the Dump Open?",
-    body: "Tap this button on the home screen anytime to instantly see whether the Convenience Center is open or closed right now.",
-    icon: Info,
-    pulse: "hero-dump-btn",
-  },
-  {
-    id: "corruption",
-    title: "Report Corruption",
-    body: "Found something shady? The County Info page has direct links to the TN Comptroller hotline, FBI, and Patriot Punk Network — all anonymous.",
-    icon: Flag,
-    pulse: "bottom-nav-county",
-  },
-];
-
-function OnboardingTour({ onDone, onNav }: { onDone: () => void; onNav: (s: string) => void }) {
-  const [step, setStep] = useState(0);
-  const current = TOUR_STEPS[step];
-  const Icon = current.icon;
-  const isLast = step === TOUR_STEPS.length - 1;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm" style={{ paddingBottom: "72px" }}>
-      <div className="w-full max-w-md bg-card rounded-t-2xl shadow-2xl border-t-4 p-6 pb-8"
-        style={{ borderTopColor: "var(--color-forest)" }}>
-        {/* Progress dots */}
-        <div className="flex items-center gap-1.5 mb-5">
-          {TOUR_STEPS.map((_, i) => (
-            <div key={i} className="h-1.5 rounded-full flex-1 transition-all"
-              style={{ background: i <= step ? "var(--color-forest)" : "var(--color-cream-deep)" }}/>
-          ))}
-        </div>
-        <div className="flex items-start gap-4 mb-5">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "var(--color-forest)" }}>
-            <Icon size={22} color="white"/>
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
-              {step + 1} of {TOUR_STEPS.length}
-            </p>
-            <h3 className="font-bold text-xl leading-tight mb-1" style={{ fontFamily: "var(--font-display)" }}>
-              {current.title}
-            </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{current.body}</p>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={onDone}
-            className="px-4 py-2 rounded-xl border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">
-            Skip tour
-          </button>
-          <button onClick={() => { if (isLast) { onDone(); } else { setStep(s => s + 1); } }}
-            className="flex-1 py-2 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
-            style={{ background: "var(--color-forest)" }}>
-            {isLast ? (
-              <><CheckCircle size={15}/> Get started</>
-            ) : (
-              <>Next <ChevronRight size={15}/></>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ══════════════════════════════════════════════════════════════
 // ROOT APP
 // ══════════════════════════════════════════════════════════════
@@ -2484,15 +2382,7 @@ function AppInner() {
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showDumpPopup, setShowDumpPopup] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
-  const [showTour, setShowTour] = useState(() => {
-    try { return !sessionStorage.getItem(TOUR_KEY); } catch { return true; }
-  });
   const { dark, toggle } = useTheme();
-
-  const dismissTour = () => {
-    try { sessionStorage.setItem(TOUR_KEY, "1"); } catch {}
-    setShowTour(false);
-  };
 
   const SCREEN_TITLES: Record<Screen, string> = {
     home: "Cannon County", meetings: "Meetings & Events", alerts: "Alerts",
@@ -2527,14 +2417,13 @@ function AppInner() {
           <button onClick={() => setSidebarOpen(true)} className="p-1.5 rounded-lg hover:bg-muted transition-colors lg:hidden" aria-label="Menu">
             <Menu size={20}/>
           </button>
-          <div className="flex items-center gap-2">
+          <button onClick={() => nav("home")} className="flex items-center gap-2 rounded-lg hover:opacity-80 transition-opacity">
             <img src="/cannon-pocket-logo.jpg" alt="Cannon Pocket" className="w-8 h-8 rounded-lg flex-shrink-0 object-cover" />
-            <div className="hidden sm:block">
+            <div>
               <p className="text-sm font-bold leading-none" style={{ fontFamily: "var(--font-display)" }}>Cannon Pocket</p>
-              <p className="text-xs text-muted-foreground leading-none mt-0.5">CANNON COUNTY, TN</p>
+              <p className="text-xs text-muted-foreground leading-none mt-0.5 hidden sm:block">CANNON COUNTY, TN</p>
             </div>
-            <p className="text-sm font-bold sm:hidden" style={{ fontFamily: "var(--font-display)" }}>{SCREEN_TITLES[screen]}</p>
-          </div>
+          </button>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={toggle} className="p-2 rounded-lg hover:bg-muted transition-colors" aria-label="Toggle theme">
@@ -2599,7 +2488,7 @@ function AppInner() {
             const active = screen === id;
             return (
               <button key={id} onClick={() => nav(id)} data-testid={`nav-${id}`}
-                className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-colors ${
+                className={`flex flex-col items-center gap-0.5 px-1 py-2 rounded-xl transition-colors min-w-0 ${
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 }`}>
                 <Icon size={20} strokeWidth={active ? 2.5 : 1.8}/>
@@ -2609,28 +2498,25 @@ function AppInner() {
           })}
           {/* Report Corruption — always visible, brick-colored */}
           <button onClick={navToCorruption}
-            className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-colors"
+            className="flex flex-col items-center gap-0.5 px-1 py-2 rounded-xl transition-colors min-w-0"
             style={{ color: "var(--color-brick)" }}>
             <Flag size={20} strokeWidth={1.8}/>
-            <span className="text-xs font-semibold">Corruption?</span>
+            <span className="text-[10px] font-semibold whitespace-nowrap">Corrupt?</span>
           </button>
         </div>
       </nav>
 
       {/* Feedback floating button */}
-      {!showTour && (
-        <button onClick={() => setShowFeedback(true)}
-          className="fixed bottom-20 right-4 lg:bottom-6 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105"
-          style={{ background: "var(--color-bronze)" }}
-          aria-label="Send feedback">
-          <Send size={18} color="white"/>
-        </button>
-      )}
+      <button onClick={() => setShowFeedback(true)}
+        className="fixed bottom-20 right-4 lg:bottom-6 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105"
+        style={{ background: "var(--color-bronze)" }}
+        aria-label="Send feedback">
+        <Send size={18} color="white"/>
+      </button>
 
       <Toaster/>
       {showDumpPopup && <DumpHoursPopup onClose={() => setShowDumpPopup(false)}/>}
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)}/>}
-      {showTour && <OnboardingTour onDone={dismissTour} onNav={nav}/>}
     </div>
   );
 }

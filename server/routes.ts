@@ -371,7 +371,7 @@ export function registerRoutes(httpServer: Server, app: Express) {
       return res.status(400).json({ error: "name, category, and contact_email are required" });
     }
 
-    const { data, error } = await supabase.from("businesses").insert({
+    const { error } = await supabase.from("businesses").insert({
       name, category, description, address, phone, website_url,
       hours, offer,
       tier: tier || "free",
@@ -380,36 +380,42 @@ export function registerRoutes(httpServer: Server, app: Express) {
       status: "pending",
       contact_name, contact_email, contact_phone,
       applied_at: new Date().toISOString(),
-    }).select().single();
+    });
 
     if (error) return res.status(500).json({ error: error.message });
 
     // Send notification email to admin via Resend
     try {
-      const { Resend } = await import("resend");
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      await resend.emails.send({
-        from: "Cannon County Dashboard <onboarding@resend.dev>",
-        to: [process.env.ADMIN_EMAIL || "estateofcreative@gmail.com"],
-        subject: `New Business Listing Application: ${name} (${tier || "free"})`,
-        html: `
-          <h2>New Listing Application</h2>
-          <p><strong>Business:</strong> ${name}</p>
-          <p><strong>Tier:</strong> ${tier || "free"} ${is_in_county ? "(In-County)" : "(Out-of-County)"}</p>
-          <p><strong>Category:</strong> ${category}</p>
-          <p><strong>Contact:</strong> ${contact_name} &lt;${contact_email}&gt; ${contact_phone || ""}</p>
-          <p><strong>Address:</strong> ${address || "—"}</p>
-          <p><strong>Description:</strong> ${description || "—"}</p>
-          <p><strong>Offer:</strong> ${offer || "—"}</p>
-          <hr/>
-          <p>Log into the Admin panel → Businesses tab to approve or reject this application.</p>
-        `,
-      });
+      const RESEND_KEY = process.env.RESEND_API_KEY;
+      const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "estateofcreative@gmail.com";
+      if (RESEND_KEY) {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: "Cannon Pocket <onboarding@resend.dev>",
+            to: [ADMIN_EMAIL],
+            subject: `New Business Listing Application: ${name} (${tier || "free"})`,
+            html: `
+              <h2>New Listing Application</h2>
+              <p><strong>Business:</strong> ${name}</p>
+              <p><strong>Tier:</strong> ${tier || "free"} ${is_in_county ? "(In-County)" : "(Out-of-County)"}</p>
+              <p><strong>Category:</strong> ${category}</p>
+              <p><strong>Contact:</strong> ${contact_name} &lt;${contact_email}&gt; ${contact_phone || ""}</p>
+              <p><strong>Address:</strong> ${address || "\u2014"}</p>
+              <p><strong>Description:</strong> ${description || "\u2014"}</p>
+              <p><strong>Offer:</strong> ${offer || "\u2014"}</p>
+              <hr/>
+              <p>Log into the Admin panel \u2192 Businesses tab to approve or reject this application.</p>
+            `
+          })
+        });
+      }
     } catch (e) {
       console.warn("[apply] Email notification failed:", e);
     }
 
-    res.json({ success: true, id: data.id });
+    res.json({ success: true });
   });
 
   // Approve or reject a pending business
